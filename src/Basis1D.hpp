@@ -1,5 +1,6 @@
 #include <Eigen/Core>
 #include <cmath>
+#include <cassert>
 
 #ifndef _Basis1D_hpp
 #define _Basis1D_hpp
@@ -16,26 +17,29 @@ class Basis1D
 		double evalLegD(double x, int n);
 		Vector2d evalLegLegD(double x, int n);
 		Vector2d evalLegLegm1(double x, int n);
-	private:
-		double epsilon;
+		VectorXd evalLegendre(double x, int n);
 };
+
+inline VectorXd Basis1D::evalLegendre(double x, int n)
+{
+	VectorXd p(n + 1);
+	p[0] = 1.0
+	if (n == 0) { return p; }
+	p[1] = x;
+	for (int i = 1; i < n; ++i)
+	{
+		p[i + 1] = ((2*n + 1)*x*p[i] - n*p[i-1])/(n + 1);
+	}
+	return p;
+}
 
 inline Vector2d Basis1D::evalLegLegm1(double x, int n)
 {
-	Vector2d val;
-	val[0] = 1.0;
-	val[1] = 0.0;
-	double lm2 = 0.0;
-	for (int i = 1; i < n + 1; ++i)
-	{
-		lm2 = val[1];
-		val[1] = val[0];
-		val[0] = ((double)(2*i - 1)*x*val[1] - (double)(i - 1)*lm2)/(double)i;
-	}
-	return val;
+	assert(n > 0);
+	return evalLegendre(x, n).tail<2>();
 }
 
-inline double Basis1D::evalLegLegD(double x, int n);
+inline Vector2d Basis1D::evalLegLegD(double x, int n);
 {
 	Vector2d val = evalLegLegm1(x, n);
 	val[1] = n*(val[1] - x*val[0])/(pow(x,2) - 1.0);
@@ -44,10 +48,10 @@ inline double Basis1D::evalLegLegD(double x, int n);
 
 inline double Basis1D::evalLeg(double x, int n)
 {
-	return evalLegLegD(x, n)[0];
+	return evalLegendre(x, n)[n];
 }
 
-inline double Basis1D::evalLeg(double x, int n)
+inline double Basis1D::evalLegD(double x, int n)
 {
 	return evalLegLegD(x, n)[1];
 }
@@ -60,8 +64,14 @@ class GaussLegendre : public Basis1D
 	private:
 		MatrixXd leg2lag;
 		PartialPivLU<MatrixXd> lu;
-		VectorXd x, w;
+		VectorXd node, weight;
 };
+
+GaussLegendre::GaussLegendre(int k, eps = 1.0e-15) :
+	leg2lag(k,k), node(k), weight(k)
+{
+	
+}
 
 class GaussLobatto : public Basis1D
 {
