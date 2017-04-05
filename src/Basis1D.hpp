@@ -14,8 +14,8 @@ class Basis1D
 		Basis1D() = default;
 		virtual ~Basis1D() = default;
 	protected:
-		double evalLeg(double x, int n);
-		double evalLegD(double x, int n);
+		// double evalLeg(double x, int n);
+		// double evalLegD(double x, int n);
 		RowVector2d evalLegLegD(double x, int n);
 		Vector2d evalLegm1Leg(double x, int n);
 		VectorXd evalLegendre(double x, int n);
@@ -53,15 +53,15 @@ inline RowVector2d Basis1D::evalLegLegD(double x, int n)
 	return evalLegendreD(x, n).bottomRows<1>();
 }
 
-inline double Basis1D::evalLeg(double x, int n)
-{
-	return evalLegendreD(x, n)(n,0);
-}
+// inline double Basis1D::evalLeg(double x, int n)
+// {
+// 	return evalLegendreD(x, n)(n,0);
+// }
 
-inline double Basis1D::evalLegD(double x, int n)
-{
-	return evalLegendreD(x, n)(n,1);
-}
+// inline double Basis1D::evalLegD(double x, int n)
+// {
+// 	return evalLegendreD(x, n)(n,1);
+// }
 
 class GaussLegendre : public Basis1D
 {
@@ -130,7 +130,7 @@ class GaussLobatto : public Basis1D
 {
 	public:
 		GaussLobatto(int k = 1, double eps = 1.0e-15);
-		~GaussLobatto() = default;
+		virtual ~GaussLobatto() = default;
 		MatrixX2d evalGLL(double x);
 		double getNode(int i);
 		double getWeight(int i);
@@ -194,6 +194,37 @@ inline double GaussLobatto::getWeight(int i)
 inline int GaussLobatto::getN()
 {
 	return n_nodes;
+}
+
+class EdgeFunction : private GaussLobatto
+{
+	public:
+		EdgeFunction(int k = 1, double eps = 1e-15);
+		~EdgeFunction() = default;
+		VectorXd evalEF(double x);
+		int getN();
+	private:
+		int n_segments;
+};
+
+EdgeFunction::EdgeFunction(int k, double eps) :
+	GaussLobatto(k + 1, eps), n_segments(k) {}
+
+inline VectorXd EdgeFunction::evalEF(double x)
+{
+	VectorXd ef(n_segments);
+	MatrixX2d gl = evalGLL(x);
+	ef[0] = -gl(0, 1);
+	for (int i = 1; i < n_segments; ++i)
+	{
+		ef[i] = ef[i-1] - gl(i, 1)
+	}
+	return ef;
+}
+
+inline int EdgeFunction::getN()
+{
+	return n_segments;
 }
 
 #endif
