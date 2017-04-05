@@ -1,5 +1,6 @@
 #define _USE_MATH_DEFINES
-#include <Eigen/Core>
+#include "Eigen/Core"
+#include "Eigen/Dense"
 #include <cmath>
 
 #ifndef _Basis1D_hpp
@@ -15,7 +16,7 @@ class Basis1D
 	protected:
 		double evalLeg(double x, int n);
 		double evalLegD(double x, int n);
-		Vector2d evalLegLegD(double x, int n);
+		RowVector2d evalLegLegD(double x, int n);
 		Vector2d evalLegLegm1(double x, int n);
 		VectorXd evalLegendre(double x, int n);
 		MatrixX2d evalLegendreD(double x, int n);
@@ -44,23 +45,22 @@ inline VectorXd Basis1D::evalLegendre(double x, int n)
 
 inline Vector2d Basis1D::evalLegLegm1(double x, int n)
 {
-	assert(n > 0);
 	return evalLegendreD(x, n).bottomLeftCorner<2,1>();
 }
 
-inline RowVector2d Basis1D::evalLegLegD(double x, int n);
+inline RowVector2d Basis1D::evalLegLegD(double x, int n)
 {
-	return evalLegendreD.bottomRows<1>();
+	return evalLegendreD(x, n).bottomRows<1>();
 }
 
 inline double Basis1D::evalLeg(double x, int n)
 {
-	return evalLegendreD(x, n).bottomLeftCorner<1,1>();
+	return evalLegendreD(x, n)(n,0);
 }
 
 inline double Basis1D::evalLegD(double x, int n)
 {
-	return evalLegendreD(x, n).bottomRightCorner<1,1>();
+	return evalLegendreD(x, n)(n,1);
 }
 
 class GaussLegendre : public Basis1D
@@ -68,7 +68,10 @@ class GaussLegendre : public Basis1D
 	public:
 		GaussLegendre(int k = 1, double eps = 1.0e-15);
 		~GaussLegendre() = default;
-		VectorXd evalGL(double x);
+		MatrixX2d evalGL(double x);
+		double getNode(int i);
+		double getWeight(int i);
+		int getN();
 	private:
 		const int n_nodes;
 		MatrixXd leg2lag;
@@ -77,7 +80,7 @@ class GaussLegendre : public Basis1D
 };
 
 GaussLegendre::GaussLegendre(int k, double eps) :
-	n_nodes(k), leg2lag(k,k), lu(k,k), node(k), weight(k)
+	n_nodes(k), leg2lag(k,k), lu(k), node(k), weight(k)
 {
 	for (int i = 1; i <= (k + 1)/2; ++i)
 	{
@@ -88,7 +91,8 @@ GaussLegendre::GaussLegendre(int k, double eps) :
 		{
 			double x_old = x;
 			p = evalLegLegD(x, k);
-			x = x_old - p[1]/p[0];
+			x = x_old - p[0]/p[1];
+			err = std::abs(x_old - x);
 		} while (err > eps);
 		node[i-1] = x;
 		node[k-i] = x;
@@ -102,9 +106,24 @@ GaussLegendre::GaussLegendre(int k, double eps) :
 	lu.compute(leg2lag);
 }
 
-inline MatrixX2d evalGL(double x)
+inline MatrixX2d GaussLegendre::evalGL(double x)
 {
 	return lu.solve(evalLegendreD(x, n_nodes));
+}
+
+inline double GaussLegendre::getNode(int i)
+{
+	return node[i];
+}
+
+inline double GaussLegendre::getWeight(int i)
+{
+	return weight[i];
+}
+
+inline int GaussLegendre::getN()
+{
+	return n_nodes;
 }
 
 // class GaussLobatto : public Basis1D
