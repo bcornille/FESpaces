@@ -17,7 +17,7 @@ class Basis1D
 		double evalLeg(double x, int n);
 		double evalLegD(double x, int n);
 		RowVector2d evalLegLegD(double x, int n);
-		Vector2d evalLegLegm1(double x, int n);
+		Vector2d evalLegm1Leg(double x, int n);
 		VectorXd evalLegendre(double x, int n);
 		MatrixX2d evalLegendreD(double x, int n);
 };
@@ -43,7 +43,7 @@ inline VectorXd Basis1D::evalLegendre(double x, int n)
 	return evalLegendreD(x, n).leftCols<1>();
 }
 
-inline Vector2d Basis1D::evalLegLegm1(double x, int n)
+inline Vector2d Basis1D::evalLegm1Leg(double x, int n)
 {
 	return evalLegendreD(x, n).bottomLeftCorner<2,1>();
 }
@@ -94,7 +94,7 @@ GaussLegendre::GaussLegendre(int k, double eps) :
 			x = x_old - p[0]/p[1];
 			err = std::abs(x_old - x);
 		} while (err > eps);
-		node[i-1] = x;
+		node[i-1] = -x;
 		node[k-i] = x;
 		weight[i-1] = 2.0/((1.0 - pow(x,2))*pow(p[1],2));
 		weight[k-i] = weight[i-1];
@@ -126,12 +126,74 @@ inline int GaussLegendre::getN()
 	return n_nodes;
 }
 
-// class GaussLobatto : public Basis1D
-// {
-// 	public:
-// 		GaussLobatto() = default;
-// 		~GaussLobatto() = default;
-// 	private:
-// };
+class GaussLobatto : public Basis1D
+{
+	public:
+		GaussLobatto(int k = 1, double eps = 1.0e-15);
+		~GaussLobatto() = default;
+		MatrixX2d evalGLL(double x);
+		double getNode(int i);
+		double getWeight(int i);
+		int getN();
+	private:
+		const int n_nodes;
+		MatrixXd leg2lag;
+		PartialPivLU<MatrixXd> lu;
+		VectorXd node, weight;
+};
+
+GaussLobatto::GaussLobatto(int k, double eps) :
+	n_nodes(k), leg2lag(k,k), lu(k), node(k), weight(k)
+{
+	GaussLegendre gl;
+	node[0] = -1.0;
+	node[k-1] = 1.0;
+	weight[0] = 2.0/(k*(k-1));
+	weight[k-1] = weight[0];
+	for (int i = 2; i <= (k + 1)/2; ++i)
+	{
+		double err;
+		Vector2d p;
+		double x = 0.5*(gl.node(i-1) + gl.node(i-2));
+		do
+		{
+			double x_old = x;
+			p = evalLegm1Leg(x, k);
+			double g = k*(x*p[1] - p[0]);
+			double dg = k*(k + 1)*p[1];
+			x = x_old - g/dg;
+			err = std::abs(x_old - x);
+		} while (err > eps);
+		node[i-1] = x;
+		node[k-i] = -x;
+		weight[i-1] = weight[0]/pow(p[1],2);
+		weight[k-i] = weight[i-1];
+	}
+	for (int i = 0; i < k; ++i)
+	{
+		leg2lag.col(i) = evalLegendre(node[i], k - 1);
+	}
+	lu.compute(leg2lag);
+}
+
+inline MatrixX2d GaussLobatto::evalGLL(double x)
+{
+	return lu.solve(evalLegendreD(x, n_nodes));
+}
+
+inline double GaussLobatto::getNode(int i)
+{
+	return node[i];
+}
+
+inline double GaussLobatto::getWeight(int i)
+{
+	return weight[i];
+}
+
+inline int GaussLobatto::getN()
+{
+	return n_nodes;
+}
 
 #endif
