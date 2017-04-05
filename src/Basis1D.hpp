@@ -8,6 +8,8 @@
 
 using namespace Eigen;
 
+constexpr double pi() { return std::atan(1)*4; }
+
 class Basis1D
 {
 	public:
@@ -33,7 +35,7 @@ inline MatrixX2d Basis1D::evalLegendreD(double x, int n)
 	for (int i = 1; i < n; ++i)
 	{
 		p(i+1, 0) = ((2*i + 1)*x*p(i, 0) - i*p(i-1, 0))/(i + 1);
-		p(i+1, 1) = (4*i + 2)*p(i, 0) + p(i-1, 1);
+		p(i+1, 1) = (2*i + 1)*p(i, 0) + p(i-1, 1);
 	}
 	return p;
 }
@@ -86,7 +88,7 @@ GaussLegendre::GaussLegendre(int k, double eps) :
 	{
 		double err;
 		RowVector2d p;
-		double x = cos((2.0*i - 1.0)*M_PI/(2.0*k));
+		double x = cos((2.0*i - 1.0)*pi()/(2.0*k));
 		do
 		{
 			double x_old = x;
@@ -154,7 +156,7 @@ GaussLobatto::GaussLobatto(int k, double eps) :
 	{
 		double err;
 		Vector2d p;
-		double x = 0.5*(gl.node(i-1) + gl.node(i-2));
+		double x = 0.5*(gl.getNode(i-1) + gl.getNode(i-2));
 		do
 		{
 			double x_old = x;
@@ -217,7 +219,7 @@ inline VectorXd EdgeFunction::evalEF(double x)
 	ef[0] = -gl(0, 1);
 	for (int i = 1; i < n_segments; ++i)
 	{
-		ef[i] = ef[i-1] - gl(i, 1)
+		ef[i] = ef[i-1] - gl(i, 1);
 	}
 	return ef;
 }
