@@ -1,4 +1,3 @@
-#define _USE_MATH_DEFINES
 #include "Eigen/Core"
 #include "Eigen/Dense"
 #include <cmath>
