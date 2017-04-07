@@ -18,6 +18,8 @@ class Integrator1D
 		MatrixXd grad(H1_1D u, L2_1D v, Trasform1D_Linear t);
 		MatrixXd grad(L2_1D u, H1_1D v, Trasform1D_Linear t);
 		MatrixXd laplace(H1_1D u, H1_1D v, Trasform1D_Linear t);
+		VectorXd force(const Force1D& f, H1_1D v, Trasform1D_Linear t);
+		VectorXd force(const Force1D& f, L2_1D v, Trasform1D_Linear t);
 	private:
 		const GaussLegendre gl;
 };
@@ -92,6 +94,32 @@ inline MatrixXd Integrator1D::laplace(H1_1D u, H1_1D v, Trasform1D_Linear t)
 		matrix += v_vals*u_vals.traspose()/t.jacobian();
 	}
 	return matrix;
+}
+
+inline VectorXd Integrator1D::force(const Force1D& f, H1_1D v, Trasform1D_Linear t)
+{
+	VectorXd rhs(v.dofs());
+	rhs.setZero();
+	for (int i = 0; i < gl.getN(); ++i)
+	{
+		double x_hat = gl.getNode(i);
+		VectorXd v_vals = v.eval(x_hat);
+		rhs += f(x_hat)*v_vals*t.jacobian();
+	}
+	return rhs;
+}
+
+inline VectorXd Integrator1D::force(const Force1D& f, L2_1D v, Trasform1D_Linear t)
+{
+	VectorXd rhs(v.dofs());
+	rhs.setZero();
+	for (int i = 0; i < gl.getN(); ++i)
+	{
+		double x_hat = gl.getNode(i);
+		VectorXd v_vals = v.eval(x_hat);
+		rhs += f(x_hat)*v_vals*t.jacobian();
+	}
+	return rhs;
 }
 
 #endif
