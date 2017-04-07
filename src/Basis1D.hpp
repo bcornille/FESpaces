@@ -205,7 +205,7 @@ class EdgeFunction : private GaussLobatto
 		VectorXd evalEF(double x);
 		int getN();
 	private:
-		int n_segments;
+		const int n_segments;
 };
 
 EdgeFunction::EdgeFunction(int k, double eps) :

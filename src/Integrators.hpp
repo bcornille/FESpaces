@@ -19,7 +19,7 @@ class Integrator1D
 		MatrixXd grad(L2_1D u, H1_1D v, Trasform1D_Linear t);
 		MatrixXd laplace(H1_1D u, H1_1D v, Trasform1D_Linear t);
 	private:
-		GaussLegendre gl;
+		const GaussLegendre gl;
 };
 
 Integrator1D::Integrator1D(njson params) : gl((int)params["N"]) {}

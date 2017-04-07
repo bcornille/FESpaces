@@ -14,7 +14,7 @@ class H1_1D
 		VectorXd evalD(double x);
 		int dofs();
 	private:
-		GaussLobatto gll;
+		const GaussLobatto gll;
 };
 
 H1_1D::H1_1D(int p) : gll(p + 1) {}
@@ -42,7 +42,7 @@ class L2_1D
 		VectorXd eval(double x);
 		int dofs();
 	private:
-		GaussLegendre gl;
+		const GaussLegendre gl;
 };
 
 L2_1D::L2_1D(int p) : gl(p) {}

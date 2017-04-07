@@ -13,7 +13,7 @@ class Trasform1D_Linear
 		double forwardTrasform(double x_hat);
 		double jacobian();
 	private:
-		RowVector2d x_range;
+		const RowVector2d x_range;
 };
 
 Trasform1D_Linear::Trasform1D_Linear(double a, dobule b) : x_range({a, b}) {}

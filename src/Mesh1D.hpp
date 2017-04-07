@@ -15,8 +15,8 @@ class Mesh1D
 		Trasform1D_Linear getLinearTransform(int i);
 	private:
 		VextorXd x;
-		int N_segments;
-		int N_node;
+		const int N_segments;
+		const int N_node;
 };
 
 Mesh1D::Mesh1D(nlohmann::json params) :
