@@ -16,7 +16,7 @@ class ExpX1mX : Force1D
 	public:
 		ExpX1mX() = default;
 		~ExpX1mX() = default;
-		double f(doube x);
+		double f(double x);
 };
 
 double ExpX1mX::f(double x)
