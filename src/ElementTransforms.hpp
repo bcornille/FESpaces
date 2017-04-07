@@ -20,12 +20,12 @@ Trasform1D_Linear::Trasform1D_Linear(double a, dobule b) : x_range({a, b}) {}
 
 inline Trasform1D_Linear::forwardTrasform(double x_hat)
 {
-	return ((b - a)*x_hat + a + b)/2.0;
+	return ((x_range[1] - x_range[0])*x_hat + x_range[0] + x_range[1])/2.0;
 }
 
 inline Trasform1D_Linear::jacobian()
 {
-	return (b - a)/2.0;
+	return (x_range[1] - x_range[0])/2.0;
 }
 
 #endif
