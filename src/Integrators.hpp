@@ -17,6 +17,7 @@ class Integrator1D
 		MatrixXd mass(L2_1D u, L2_1D v, Trasform1D_Linear t);
 		MatrixXd grad(H1_1D u, L2_1D v, Trasform1D_Linear t);
 		MatrixXd grad(L2_1D u, H1_1D v, Trasform1D_Linear t);
+		MatrixXd laplace(H1_1D u, H1_1D v, Trasform1D_Linear t);
 	private:
 		GaussLegendre gl;
 };
@@ -75,6 +76,20 @@ inline MatrixXd Integrator1D::grad(L2_1D u, H1_1D v, Trasform1D_Linear t)
 		VectorXd u_vals = u.eval(x_hat);
 		VectorXd v_vals = v.evalD(x_hat);
 		matrix += v_vals*u_vals.traspose();
+	}
+	return matrix;
+}
+
+inline MatrixXd Integrator1D::laplace(H1_1D u, H1_1D v, Trasform1D_Linear t)
+{
+	MatrixXd matrix(v.dofs(), u.dofs());
+	matrix.setZero();
+	for (int i = 0; i < gl.getN(); ++i)
+	{
+		double x_hat = gl.getNode(i);
+		VectorXd u_vals = u.evalD(x_hat);
+		VectorXd v_vals = v.evalD(x_hat);
+		matrix += v_vals*u_vals.traspose()/t.jacobian();
 	}
 	return matrix;
 }
