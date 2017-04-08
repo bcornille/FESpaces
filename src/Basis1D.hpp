@@ -109,7 +109,7 @@ GaussLegendre::GaussLegendre(int k, double eps) :
 
 inline MatrixX2d GaussLegendre::evalGL(double x)
 {
-	return lu.solve(evalLegendreD(x, n_nodes));
+	return lu.solve(evalLegendreD(x, n_nodes - 1));
 }
 
 inline double GaussLegendre::getNode(int i)
@@ -146,7 +146,7 @@ class GaussLobatto : public Basis1D
 GaussLobatto::GaussLobatto(int k, double eps) :
 	n_nodes(k), leg2lag(k,k), lu(k), node(k), weight(k)
 {
-	GaussLegendre gl;
+	GaussLegendre gl(k-1);
 	node[0] = -1.0;
 	node[k-1] = 1.0;
 	weight[0] = 2.0/(k*(k-1));
@@ -159,7 +159,7 @@ GaussLobatto::GaussLobatto(int k, double eps) :
 		do
 		{
 			double x_old = x;
-			p = evalLegm1Leg(x, k);
+			p = evalLegm1Leg(x, k - 1);
 			double g = k*(x*p[1] - p[0]);
 			double dg = k*(k + 1)*p[1];
 			x = x_old - g/dg;
@@ -179,7 +179,7 @@ GaussLobatto::GaussLobatto(int k, double eps) :
 
 inline MatrixX2d GaussLobatto::evalGLL(double x)
 {
-	return lu.solve(evalLegendreD(x, n_nodes));
+	return lu.solve(evalLegendreD(x, n_nodes - 1));
 }
 
 inline double GaussLobatto::getNode(int i)

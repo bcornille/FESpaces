@@ -6,28 +6,28 @@
 class Force1D
 {
 	public:
-		Force1D() = default;
+		// Force1D() = default;
 		virtual ~Force1D() = default;
-		virtual double f(double x);
+		virtual double f(double x) = 0;
 };
 
-class ExpX1mX : Force1D
+class ExpX3pX : public Force1D
 {
 	public:
-		ExpX1mX() = default;
-		~ExpX1mX() = default;
+		// ExpX1mX() = default;
+		~ExpX3pX() = default;
 		double f(double x);
 };
 
-double ExpX1mX::f(double x)
+double ExpX3pX::f(double x)
 {
-	return exp(x)*x*(1.0 - x);
+	return exp(x)*x*(x + 3.0);
 }
 
-class Two : Force1D
+class Two : public Force1D
 {
 	public:
-		Two() = default;
+		// Two() = default;
 		~Two() = default;
 		double f(double x);
 };

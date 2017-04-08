@@ -5,6 +5,7 @@
 #include <string>
 #include "Mesh1D.hpp"
 #include "Integrators.hpp"
+#include "ReferenceElements.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -22,16 +23,19 @@ int main(int argc, char const *argv[])
 
 	Mesh1D mesh(input["Mesh"]);
 	Integrator1D integrate(input["Integrator"]);
-	std::unique_ptr<Force1D> force;
+	int order = (int)input["Order"];
+	H1_1D p(order);
+	L2_1D u(order);
+	std::shared_ptr<Force1D> force;
 
 	std::string force_type = input["Function"];
 	if (force_type == "Two")
 	{
-		force = std::make_unique<Force1D>(new Two);
+		force = std::make_shared<Two>();
 	}
-	else if (force_type == "ExpX1mX")
+	else if (force_type == "ExpX3pX")
 	{
-		force = std::make_unique<Force1D>(new ExpX1mX);
+		force = std::make_shared<ExpX3pX>();
 	}
 	else
 	{
@@ -39,6 +43,9 @@ int main(int argc, char const *argv[])
 		return 2;
 	}
 
+	std::cout << integrate.grad(u,p,mesh.getLinearTransform(0)) << std::endl;
+	std::cout << std::endl;
+	std::cout << integrate.grad(p,u,mesh.getLinearTransform(0)) << std::endl;
 	output["x"] = mesh.nodes();
 
 	std::ofstream outfile(argv[2]);
