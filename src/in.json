@@ -5,8 +5,8 @@
 		"N" : 0
 	},
 	"Integrator" : {
-		"N" : 60
+		"N" : 6
 	},
 	"Function" : "Two",
-	"Order" : 15
+	"Order" : 1
 }
