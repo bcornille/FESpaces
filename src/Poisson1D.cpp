@@ -43,7 +43,7 @@ int main(int argc, char const *argv[])
 		return 2;
 	}
 
-	std::cout << integrate.grad(u,p,mesh.getLinearTransform(0)) << std::endl;
+	std::cout << integrate.mass(u,u,mesh.getLinearTransform(0)) << std::endl;
 	std::cout << std::endl;
 	std::cout << integrate.grad(p,u,mesh.getLinearTransform(0)) << std::endl;
 	output["x"] = mesh.nodes();
