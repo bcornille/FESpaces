@@ -1,4 +1,5 @@
 #include "json.hpp"
+#include <vector>
 #include "ElementTransforms.hpp"
 
 #ifndef _Mesh1D_hpp

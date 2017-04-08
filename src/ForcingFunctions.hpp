@@ -8,7 +8,7 @@ class Force1D
 	public:
 		Force1D() = default;
 		virtual ~Force1D() = default;
-		virtual double f(double x) = 0;
+		virtual double f(double x);
 };
 
 class ExpX1mX : Force1D
