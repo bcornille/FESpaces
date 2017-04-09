@@ -57,4 +57,27 @@ inline int L2_1D::dofs()
 	return gl.getN();
 }
 
+class L2_1D_EF
+{
+	public:
+		L2_1D_EF(int p = 0);
+		~L2_1D_EF() = default;
+		VectorXd eval(double x);
+		int dofs();
+	private:
+		EdgeFunction ef;
+};
+
+L2_1D_EF::L2_1D_EF(int p) : ef(p) {}
+
+inline VectorXd L2_1D_EF::eval(double x)
+{
+	return ef.evalEF(x);
+}
+
+inline int L2_1D_EF::dofs()
+{
+	return ef.getN();
+}
+
 #endif

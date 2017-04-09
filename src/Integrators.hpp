@@ -16,11 +16,15 @@ class Integrator1D
 		~Integrator1D() = default;
 		MatrixXd mass(H1_1D u, H1_1D v, Transform1D_Linear t);
 		MatrixXd mass(L2_1D u, L2_1D v, Transform1D_Linear t);
+		MatrixXd mass(L2_1D_EF u, L2_1D_EF v, Transform1D_Linear t);
 		MatrixXd grad(H1_1D u, L2_1D v, Transform1D_Linear t);
 		MatrixXd grad(L2_1D u, H1_1D v, Transform1D_Linear t);
+		MatrixXd grad(H1_1D u, L2_1D_EF v, Transform1D_Linear t);
+		MatrixXd grad(L2_1D_EF u, H1_1D v, Transform1D_Linear t);
 		MatrixXd laplace(H1_1D u, H1_1D v, Transform1D_Linear t);
 		VectorXd force(Force1D& f, H1_1D v, Transform1D_Linear t);
 		VectorXd force(Force1D& f, L2_1D v, Transform1D_Linear t);
+		VectorXd force(Force1D& f, L2_1D_EF v, Transform1D_Linear t);
 	private:
 		GaussLegendre gl;
 };
@@ -55,6 +59,20 @@ inline MatrixXd Integrator1D::mass(L2_1D u, L2_1D v, Transform1D_Linear t)
 	return matrix;
 }
 
+inline MatrixXd Integrator1D::mass(L2_1D_EF u, L2_1D_EF v, Transform1D_Linear t)
+{
+	MatrixXd matrix(v.dofs(), u.dofs());
+	matrix.setZero();
+	for (int i = 0; i < gl.getN(); ++i)
+	{
+		double x_hat = gl.getNode(i);
+		VectorXd u_vals = u.eval(x_hat)/t.jacobian();
+		VectorXd v_vals = v.eval(x_hat)/t.jacobian();
+		matrix += v_vals*u_vals.transpose()*t.jacobian()*gl.getWeight(i);
+	}
+	return matrix;
+}
+
 inline MatrixXd Integrator1D::grad(H1_1D u, L2_1D v, Transform1D_Linear t)
 {
 	MatrixXd matrix(v.dofs(), u.dofs());
@@ -77,6 +95,34 @@ inline MatrixXd Integrator1D::grad(L2_1D u, H1_1D v, Transform1D_Linear t)
 	{
 		double x_hat = gl.getNode(i);
 		VectorXd u_vals = u.eval(x_hat);
+		VectorXd v_vals = v.evalD(x_hat);
+		matrix += v_vals*u_vals.transpose()*gl.getWeight(i);
+	}
+	return matrix;
+}
+
+inline MatrixXd Integrator1D::grad(H1_1D u, L2_1D_EF v, Transform1D_Linear t)
+{
+	MatrixXd matrix(v.dofs(), u.dofs());
+	matrix.setZero();
+	for (int i = 0; i < gl.getN(); ++i)
+	{
+		double x_hat = gl.getNode(i);
+		VectorXd u_vals = u.evalD(x_hat);
+		VectorXd v_vals = v.eval(x_hat)/t.jacobian();
+		matrix += v_vals*u_vals.transpose()*gl.getWeight(i);
+	}
+	return matrix;
+}
+
+inline MatrixXd Integrator1D::grad(L2_1D_EF u, H1_1D v, Transform1D_Linear t)
+{
+	MatrixXd matrix(v.dofs(), u.dofs());
+	matrix.setZero();
+	for (int i = 0; i < gl.getN(); ++i)
+	{
+		double x_hat = gl.getNode(i);
+		VectorXd u_vals = u.eval(x_hat)/t.jacobian();
 		VectorXd v_vals = v.evalD(x_hat);
 		matrix += v_vals*u_vals.transpose()*gl.getWeight(i);
 	}
@@ -118,6 +164,19 @@ inline VectorXd Integrator1D::force(Force1D& f, L2_1D v, Transform1D_Linear t)
 	{
 		double x_hat = gl.getNode(i);
 		VectorXd v_vals = v.eval(x_hat);
+		rhs += f.f(x_hat)*v_vals*t.jacobian()*gl.getWeight(i);
+	}
+	return rhs;
+}
+
+inline VectorXd Integrator1D::force(Force1D& f, L2_1D_EF v, Transform1D_Linear t)
+{
+	VectorXd rhs(v.dofs());
+	rhs.setZero();
+	for (int i = 0; i < gl.getN(); ++i)
+	{
+		double x_hat = gl.getNode(i);
+		VectorXd v_vals = v.eval(x_hat)/t.jacobian();
 		rhs += f.f(x_hat)*v_vals*t.jacobian()*gl.getWeight(i);
 	}
 	return rhs;

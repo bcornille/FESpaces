@@ -25,7 +25,7 @@ int main(int argc, char const *argv[])
 	Integrator1D integrate(input["Integrator"]);
 	int order = (int)input["Order"];
 	H1_1D p(order);
-	L2_1D u(order);
+	L2_1D_EF u(order);
 	std::shared_ptr<Force1D> force;
 
 	std::string force_type = input["Function"];
@@ -46,6 +46,8 @@ int main(int argc, char const *argv[])
 	std::cout << integrate.mass(u,u,mesh.getLinearTransform(0)) << std::endl;
 	std::cout << std::endl;
 	std::cout << integrate.grad(p,u,mesh.getLinearTransform(0)) << std::endl;
+	std::cout << std::endl;
+	std::cout << integrate.mass(u,u,mesh.getLinearTransform(0)).partialPivLu().solve(integrate.grad(p,u,mesh.getLinearTransform(0))) << std::endl;
 	output["x"] = mesh.nodes();
 
 	std::ofstream outfile(argv[2]);
