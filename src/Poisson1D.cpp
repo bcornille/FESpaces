@@ -43,11 +43,17 @@ int main(int argc, char const *argv[])
 		return 2;
 	}
 
-	std::cout << integrate.mass(u,u,mesh.getLinearTransform(0)) << std::endl;
+	std::cout << integrate.mass(u, u, mesh.getLinearTransform(0)) << std::endl;
 	std::cout << std::endl;
-	std::cout << integrate.grad(p,u,mesh.getLinearTransform(0)) << std::endl;
+	std::cout << integrate.grad(u, p, mesh.getLinearTransform(0)) << std::endl;
 	std::cout << std::endl;
-	std::cout << integrate.mass(u,u,mesh.getLinearTransform(0)).partialPivLu().solve(integrate.grad(p,u,mesh.getLinearTransform(0))) << std::endl;
+	std::cout << integrate.force(force, p, mesh.getLinearTransform(0)) << std::endl;
+	std::cout << std::endl;
+	std::cout << integrate.mass(p, p, mesh.getLinearTransform(0)) << std::endl;
+	std::cout << std::endl;
+	std::cout << integrate.grad(p, u, mesh.getLinearTransform(0)) << std::endl;
+	std::cout << std::endl;
+	std::cout << integrate.force(force, u, mesh.getLinearTransform(0)) << std::endl;
 	output["x"] = mesh.nodes();
 
 	std::ofstream outfile(argv[2]);
