@@ -3,9 +3,12 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include "Eigen/Sparse"
 #include "Mesh1D.hpp"
 #include "Integrators.hpp"
 #include "ReferenceElements.hpp"
+
+using namespace Eigen;
 
 int main(int argc, char const *argv[])
 {
@@ -48,9 +51,9 @@ int main(int argc, char const *argv[])
 	}
 
 	// This is for the H1 standard system.
-	system.resize(N_el*(order) - 1, N_el*(order) - 1);
-	rhs.resize(N_el*(order) - 1);
-	system.reserve(VectorXi::Constant(2*order + 1));
+	system.resize(N_el*order - 1, N_el*order - 1);
+	rhs.resize(N_el*order - 1);
+	system.reserve(VectorXi::Constant(N_el*order - 1, 2*order + 1));
 	system.setZero();
 	rhs.setZero();
 	MatrixXd minimatrix = integrate.laplace(p, p, mesh.getLinearTransform(0));
@@ -77,7 +80,7 @@ int main(int argc, char const *argv[])
 		}
 	}
 	minimatrix = integrate.laplace(p, p, mesh.getLinearTransform(N_el - 1));
-	VectorXd minirhs = integrate.force(force, p, mesh.getLinearTransform(N_el - 1));
+	minirhs = integrate.force(force, p, mesh.getLinearTransform(N_el - 1));
 	for (int j = 0; j < order; ++j)
 	{
 		rhs[(N_el-1)*order+j-1] += minirhs[j];
@@ -87,6 +90,17 @@ int main(int argc, char const *argv[])
 		}
 	}
 	system.makeCompressed();
+	solver.analyzePattern(system);
+	solver.factorize(system);
+	VectorXd x = solver.solve(rhs);
+
+	std::vector<double> v(N_el*order + 1);
+	v[0] = 0.0;
+	for (int i = 1; i < N_el*order; ++i)
+	{
+		v[i] = x[i-1];
+	}
+	v[N_el*order] = 0.0;
 
 	std::cout << integrate.mass(u, u, mesh.getLinearTransform(0)) << std::endl;
 	std::cout << std::endl;
@@ -99,7 +113,9 @@ int main(int argc, char const *argv[])
 	std::cout << integrate.grad(p, u, mesh.getLinearTransform(0)) << std::endl;
 	std::cout << std::endl;
 	std::cout << integrate.force(force, u, mesh.getLinearTransform(0)) << std::endl;
+
 	output["x"] = mesh.nodes();
+	output["u"] = v;
 
 	std::ofstream outfile(argv[2]);
 	outfile << std::setw(2) << output << std::endl;
