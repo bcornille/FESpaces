@@ -34,6 +34,7 @@ int main(int argc, char const *argv[])
 	SparseMatrix<double> system;
 	VectorXd rhs;
 	SimplicialLLT<SparseMatrix<double> > solver;
+	// SparseLU<SparseMatrix<double> > solver;
 
 	std::string force_type = input["Function"];
 	if (force_type == "Two")
@@ -184,8 +185,8 @@ int main(int argc, char const *argv[])
 
 	solver.analyzePattern(system);
 	solver.factorize(system);
-	std::cout << solver.determinant() << std::endl;
-	std::cout << std::endl;
+	// std::cout << solver.determinant() << std::endl;
+	// std::cout << std::endl;
 	VectorXd x = solver.solve(rhs);
 
 	std::cout << x << std::endl;
