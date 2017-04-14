@@ -5,8 +5,8 @@
 		"N" : 9
 	},
 	"Integrator" : {
-		"N" : 100
+		"N" : 12
 	},
 	"Function" : "ExpX3pX",
-	"Order" : 1
+	"Order" : 9
 }
