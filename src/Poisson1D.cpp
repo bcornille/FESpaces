@@ -33,8 +33,8 @@ int main(int argc, char const *argv[])
 	std::shared_ptr<Force1D> force;
 	SparseMatrix<double> system;
 	VectorXd rhs;
-	SimplicialLLT<SparseMatrix<double> > solver;
-	// SparseLU<SparseMatrix<double> > solver;
+	// SimplicialLLT<SparseMatrix<double> > solver;
+	SparseLU<SparseMatrix<double> > solver;
 
 	std::string force_type = input["Function"];
 	if (force_type == "Two")
@@ -204,7 +204,7 @@ int main(int argc, char const *argv[])
 		VectorXd minirhs = integrate.force(force, h1, mesh.getLinearTransform(0));
 		for (int j = 1; j <= order; ++j)
 		{
-			rhs[j-1] += minirhs[j];
+			rhs[N_el*order+j-1] -= minirhs[j];
 			for (int i = 0; i < order; ++i)
 			{
 				system.coeffRef(i, N_el*order+j-1) += mini_grad(i, j);
@@ -216,7 +216,7 @@ int main(int argc, char const *argv[])
 			minirhs = integrate.force(force, h1, mesh.getLinearTransform(n));
 			for (int j = 0; j <= order; ++j)
 			{
-				rhs[n*order+j-1] += minirhs[j];
+				rhs[(N_el+n)*order+j-1] -= minirhs[j];
 				for (int i = 0; i < order; ++i)
 				{
 					system.coeffRef(n*order+i, (N_el+n)*order+j-1) += mini_grad(i, j);
@@ -227,7 +227,7 @@ int main(int argc, char const *argv[])
 		minirhs = integrate.force(force, h1, mesh.getLinearTransform(N_el - 1));
 		for (int j = 0; j < order; ++j)
 		{
-			rhs[(N_el-1)*order+j-1] += minirhs[j];
+			rhs[(2*N_el-1)*order+j-1] -= minirhs[j];
 			for (int i = 0; i < order; ++i)
 			{
 				system.coeffRef((N_el-1)*order+i, (2*N_el-1)*order+j-1) += mini_grad(i, j);
