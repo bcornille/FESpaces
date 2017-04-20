@@ -259,6 +259,8 @@ int main(int argc, char const *argv[])
 		error += integrate.error(force, h1, segment, mesh.getLinearTransform(N_el-1));
 	}
 
+	error = sqrt(error);
+
 	std::cout << std::endl;
 	std::cout << error << std::endl;
 
