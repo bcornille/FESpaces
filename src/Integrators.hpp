@@ -195,7 +195,6 @@ inline double Integrator1D::error(const std::shared_ptr<Force1D>& f, H1_1D v,
 	VectorXd coeffs, Transform1D_Linear t)
 {
 	double err = 0.0;
-	int N = gl.getN();
 	for (int i = 0; i < gl.getN(); ++i)
 	{
 		double x_hat = gl.getNode(i);
@@ -210,7 +209,6 @@ inline double Integrator1D::error(const std::shared_ptr<Force1D>& f, L2_1D v,
 	VectorXd coeffs, Transform1D_Linear t)
 {
 	double err = 0.0;
-	int N = gl.getN();
 	for (int i = 0; i < gl.getN(); ++i)
 	{
 		double x_hat = gl.getNode(i);
@@ -225,7 +223,6 @@ inline double Integrator1D::error(const std::shared_ptr<Force1D>& f, L2_1D_EF v,
 	VectorXd coeffs, Transform1D_Linear t)
 {
 	double err = 0.0;
-	int N = gl.getN();
 	for (int i = 0; i < gl.getN(); ++i)
 	{
 		double x_hat = gl.getNode(i);
