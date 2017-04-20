@@ -2,12 +2,12 @@
 	"Mesh" : {
 		"x_min" : 0.0,
 		"x_max" : 1.0,
-		"N" : 9
+		"N" : 2
 	},
 	"Integrator" : {
-		"N" : 12
+		"N" : 7
 	},
 	"Function" : "Two",
-	"Order" :2,
-	"Formulation" : "Mixed"
+	"Order" : 1,
+	"Formulation" : "Mimetic"
 }

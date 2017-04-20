@@ -25,6 +25,9 @@ class Integrator1D
 		VectorXd force(const std::shared_ptr<Force1D>& f, H1_1D v, Transform1D_Linear t);
 		VectorXd force(const std::shared_ptr<Force1D>& f, L2_1D v, Transform1D_Linear t);
 		VectorXd force(const std::shared_ptr<Force1D>& f, L2_1D_EF v, Transform1D_Linear t);
+		double error(const std::shared_ptr<Force1D>& f, H1_1D v, VectorXd coeffs, Transform1D_Linear t);
+		double error(const std::shared_ptr<Force1D>& f, L2_1D v, VectorXd coeffs, Transform1D_Linear t);
+		double error(const std::shared_ptr<Force1D>& f, L2_1D_EF v, VectorXd coeffs, Transform1D_Linear t);
 	private:
 		GaussLegendre gl;
 };
@@ -186,6 +189,48 @@ inline VectorXd Integrator1D::force(const std::shared_ptr<Force1D>& f, L2_1D_EF 
 		rhs += f->f(x)*v_vals*t.jacobian()*gl.getWeight(i);
 	}
 	return rhs;
+}
+
+inline double Integrator1D::error(const std::shared_ptr<Force1D>& f, H1_1D v,
+	VectorXd coeffs, Transform1D_Linear t)
+{
+	double err = 0.0;
+	for (int i = 0; i < gl.getN(); ++i)
+	{
+		double x_hat = gl.getNode(i);
+		double x = t.forwardTransform(x_hat);
+		VectorXd v_vals = v.eval(x_hat);
+		err += pow(f->sol(x) - v_vals.dot(coeffs), 2)*t.jacobian()*gl.getWeight(i);
+	}
+	return err;
+}
+
+inline double Integrator1D::error(const std::shared_ptr<Force1D>& f, L2_1D v,
+	VectorXd coeffs, Transform1D_Linear t)
+{
+	double err = 0.0;
+	for (int i = 0; i < gl.getN(); ++i)
+	{
+		double x_hat = gl.getNode(i);
+		double x = t.forwardTransform(x_hat);
+		VectorXd v_vals = v.eval(x_hat);
+		err += pow(f->sol(x) - v_vals.dot(coeffs), 2)*t.jacobian()*gl.getWeight(i);
+	}
+	return err;
+}
+
+inline double Integrator1D::error(const std::shared_ptr<Force1D>& f, L2_1D_EF v,
+	VectorXd coeffs, Transform1D_Linear t)
+{
+	double err = 0.0;
+	for (int i = 0; i < gl.getN(); ++i)
+	{
+		double x_hat = gl.getNode(i);
+		double x = t.forwardTransform(x_hat);
+		VectorXd v_vals = v.eval(x_hat)/t.jacobian();
+		err += pow(f->sol(x) - v_vals.dot(coeffs), 2)*t.jacobian()*gl.getWeight(i);
+	}
+	return err;
 }
 
 #endif
