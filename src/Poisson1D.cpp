@@ -106,69 +106,33 @@ int main(int argc, char const *argv[])
 		 * 		-<u,v> + <p,dv/dx> = 0	for all v in H^1
 		 * 		<du/dx,q> = <f,q>		for all q in L^2
 		 */
-		system.resize(2*N_el*order - 1, 2*N_el*order - 1);
-		rhs.resize(2*N_el*order - 1);
-		system.reserve(VectorXi::Constant(2*N_el*order - 1, 4*order + 1));
+		system.resize(2*N_el*order + 1, 2*N_el*order + 1);
+		rhs.resize(2*N_el*order + 1);
+		system.reserve(VectorXi::Constant(2*N_el*order + 1, 4*order + 1));
 		system.setZero();
 		rhs.setZero();
-		MatrixXd mini_h1_mass = integrate.mass(h1, h1, mesh.getLinearTransform(0));
-		MatrixXd mini_div = integrate.grad(h1, l2, mesh.getLinearTransform(0));
-		for (int j = 1; j <= order; ++j)
+		for (int n = 0; n < N_el; ++n)
 		{
-			for (int i = 1; i <= order; ++i)
-			{
-				system.coeffRef(i-1, j-1) -= mini_h1_mass(i, j);
-			}
-			for (int i = 0; i < order; ++i)
-			{
-				system.coeffRef(N_el*order+i-1, j-1) += mini_div(i, j);
-			}
-		}
-		VectorXd minirhs = integrate.force(force, l2, mesh.getLinearTransform(0));
-		for (int i = 0; i < order; ++i)
-		{
-			rhs[N_el*order+i-1] = minirhs[i];
-		}
-		for (int n = 1; n < N_el - 1; ++n)
-		{
-			mini_h1_mass = integrate.mass(h1, h1, mesh.getLinearTransform(n));
-			mini_div = integrate.grad(h1, l2, mesh.getLinearTransform(n));
+			MatrixXd mini_h1_mass = integrate.mass(h1, h1, mesh.getLinearTransform(n));
+			MatrixXd mini_div = integrate.grad(h1, l2, mesh.getLinearTransform(n));
 			for (int j = 0; j <= order; ++j)
 			{
 				for (int i = 0; i <= order; ++i)
 				{
-					system.coeffRef(n*order+i-1, n*order+j-1) -= mini_h1_mass(i, j);
+					system.coeffRef(n*order+i, n*order+j) -= mini_h1_mass(i, j);
 				}
 				for (int i = 0; i < order; ++i)
 				{
-					system.coeffRef((N_el+n)*order+i-1, n*order+j-1) += mini_div(i, j);
+					system.coeffRef((N_el+n)*order+i+1, n*order+j) += mini_div(i, j);
 				}
 			}
-			minirhs = integrate.force(force, l2, mesh.getLinearTransform(n));
+			VectorXd minirhs = integrate.force(force, l2, mesh.getLinearTransform(n));
 			for (int i = 0; i < order; ++i)
 			{
-				rhs[(N_el+n)*order+i-1] = minirhs[i];
+				rhs[(N_el+n)*order+i+1] = minirhs[i];
 			}
 		}
-		mini_h1_mass = integrate.mass(h1, h1, mesh.getLinearTransform(N_el-1));
-		mini_div = integrate.grad(h1, l2, mesh.getLinearTransform(N_el-1));
-		for (int j = 0; j < order; ++j)
-		{
-			for (int i = 0; i < order; ++i)
-			{
-				system.coeffRef((N_el-1)*order+i-1, (N_el-1)*order+j-1) -= mini_h1_mass(i, j);
-			}
-			for (int i = 0; i < order; ++i)
-			{
-				system.coeffRef((2*N_el-1)*order+i-1, (N_el-1)*order+j-1) += mini_div(i, j);
-			}
-		}
-		minirhs = integrate.force(force, l2, mesh.getLinearTransform(N_el-1));
-		for (int i = 0; i < order; ++i)
-		{
-			rhs[(2*N_el-1)*order+i-1] = minirhs[i];
-		}
-		SparseMatrix<double> identity(2*N_el*order - 1, 2*N_el*order - 1);
+		SparseMatrix<double> identity(2*N_el*order + 1, 2*N_el*order + 1);
 		identity.setIdentity();
 		system = system.selfadjointView<Lower>()*identity;
 	}
