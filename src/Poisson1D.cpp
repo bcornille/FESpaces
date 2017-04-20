@@ -231,7 +231,7 @@ int main(int argc, char const *argv[])
 		error += integrate.error(force, h1, segment, mesh.getLinearTransform(0));
 		for (int n = 1; n < N_el - 1; ++n)
 		{
-			error += integrate.error(force, h1, x.segment((N_el+n)*order-1, order + 1), mesh.getLinearTransform(n));
+			error += integrate.error(force, h1, x.segment(n*order - 1, order + 1), mesh.getLinearTransform(n));
 		}
 		segment.head(order) = x.segment((N_el-1)*order-1, order);
 		segment[order] = 0.0;
