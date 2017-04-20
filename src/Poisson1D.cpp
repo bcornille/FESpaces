@@ -258,6 +258,32 @@ int main(int argc, char const *argv[])
 
 	std::cout << x << std::endl;
 
+	double error = 0.0;
+	if (formulation == "Standard")
+	{
+		VectorXd segment(order + 1);
+		segment[0] = 0.0;
+		segment.tail(order) = x.segment(0, order);
+		error += integrate.error(force, h1, segment, mesh.getLinearTransform(0));
+		for (int n = 1; n < N_el - 1; ++n)
+		{
+			error += integrate.error(force, h1, x.segment(n*order - 1, order + 1), mesh.getLinearTransform(n));
+		}
+		segment.head(order) = x.segment((N_el-1)*order-1, order);
+		segment[order] = 0.0;
+		error += integrate.error(force, h1, segment, mesh.getLinearTransform(N_el-1));
+	}
+	else if(formulation == "Mixed")
+	{
+		for (int n = 0; n < N_el; ++n)
+		{
+			error += integrate.error(force, l2, x.segment(n*order, order), mesh.getLinearTransform(n));
+		}
+	}
+
+	std::cout << std::endl;
+	std::cout << error << std::endl;
+
 	// // std::vector<double> v(N_el*order + 1);
 	// std::vector<double> v(N_el*order);
 	// // v[0] = 0.0;
@@ -282,6 +308,7 @@ int main(int argc, char const *argv[])
 	// std::cout << integrate.force(force, l2, mesh.getLinearTransform(0)) << std::endl;
 
 	output["x"] = mesh.nodes();
+	output["error"] = error;
 	// output["u"] = v;
 
 	std::ofstream outfile(argv[2]);
