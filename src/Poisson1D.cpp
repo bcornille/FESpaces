@@ -7,6 +7,7 @@
 #include "Mesh1D.hpp"
 #include "Integrators.hpp"
 #include "ReferenceElements.hpp"
+#include <cstdlib>
 
 using namespace Eigen;
 
@@ -28,6 +29,7 @@ int main(int argc, char const *argv[])
 	Integrator1D integrate(input["Integrator"]);
 	int order = (int)input["Order"];
 	int N_el = (int)input["Mesh"]["N"] + 1;
+	int size = 0;
 	H1_1D h1(order);
 	L2_1D l2(order);
 	std::shared_ptr<Force1D> force;
@@ -55,8 +57,9 @@ int main(int argc, char const *argv[])
 	if (formulation == "Standard")
 	{
 		// This is for the H1 standard system.
-		system.resize(N_el*order - 1, N_el*order - 1);
-		rhs.resize(N_el*order - 1);
+		size = N_el*order - 1;
+		system.resize(size, size);
+		rhs.resize(size);
 		system.reserve(VectorXi::Constant(N_el*order - 1, 2*order + 1));
 		system.setZero();
 		rhs.setZero();
@@ -106,8 +109,9 @@ int main(int argc, char const *argv[])
 		 * 		-<u,v> + <p,dv/dx> = 0	for all v in H^1
 		 * 		<du/dx,q> = <f,q>		for all q in L^2
 		 */
-		system.resize(2*N_el*order + 1, 2*N_el*order + 1);
-		rhs.resize(2*N_el*order + 1);
+		size = 2*N_el*order + 1;
+		system.resize(size, size);
+		rhs.resize(size);
 		system.reserve(VectorXi::Constant(2*N_el*order + 1, 4*order + 1));
 		system.setZero();
 		rhs.setZero();
@@ -148,8 +152,9 @@ int main(int argc, char const *argv[])
 		 * 		<u,v> + <dp/dx,v> = 0	for all v in L^2
 		 * 		<u,dq/dx> = -<f,q>		for all q in H^1
 		 */
-		system.resize(2*N_el*order - 1, 2*N_el*order - 1);
-		rhs.resize(2*N_el*order - 1);
+		size = 2*N_el*order - 1;
+		system.resize(size, size);
+		rhs.resize(size);
 		system.reserve(VectorXi::Constant(2*N_el*order - 1, 3*order));
 		system.setZero();
 		rhs.setZero();
@@ -289,10 +294,95 @@ int main(int argc, char const *argv[])
 
 	output["x"] = mesh.nodes();
 	output["error"] = error;
-	// output["u"] = v;
+
+	// Also convert x to u and P vectors for the json output
+	std::vector<double> u, P;
+	if (formulation == "Standard")
+	{
+		P.resize(size);
+		VectorXd::Map(&P[0], x.size()) = x;  
+	}
+	else if(formulation == "Mixed")
+	{
+		P.resize(N_el*order);
+		u.resize(N_el*order + 1);
+		VectorXd::Map(&P[0], P.size()) = x.tail(P.size());
+		VectorXd::Map(&u[0], u.size()) = x.head(u.size());
+	}
+	else if (formulation == "Mimetic")
+	{
+		P.resize(N_el*order - 1);
+		u.resize(N_el*order);
+		VectorXd::Map(&P[0], P.size()) = x.tail(P.size());
+		VectorXd::Map(&u[0], u.size()) = x.head(u.size());
+	}	
+	output["u"] = u;
+	output["P"] = P;
+
+	//Playing with basis output
+	int spe = 21; //samples per element
+	double len = input["Mesh"]["xmax"] - input["Mesh"]["xmin"];
+	double xe = 0.0;
+	std::vector<double> xs, us, Ps, h1s, l2s;
+	xs.resize(spe*N_el);
+	us.resize(spe*N_el);
+	Ps.resize(spe*N_el);
+	h1s.resize(order+1);
+	l2s.resize(order);
+
+	for (int j=0; j<N_el; ++j)
+	{
+		if (j==0)
+		{
+			for (int i=0; i<spe; ++i)
+			{
+				xs[i] = i*(1/(double)N_el)*(1/(double)(spe-1));
+				xe = 2*N_el*xs[i]-1;
+				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe);
+				Ps[i] = h1s[1]*P[0] + h1s[2]*P[1];
+			}
+		} else if (j==(N_el-1))
+		{
+			for (int i=0; i<spe; ++i)
+			{
+				xs[i+j*spe] = i*(1/(double)N_el)*(1/(double)(spe-1));
+				xe = 2*N_el*xs[i]-1;
+				xs[i+j*spe] += j*(1/(double)N_el);
+				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe);
+				Ps[i+j*spe] = h1s[0]*P[order*j-1] + h1s[1]*P[order*j];
+			}
+		} else
+		{
+			for (int i=0; i<spe; ++i)
+			{
+				xs[i+j*spe] = i*(1/(double)N_el)*(1/(double)(spe-1));
+				xe = 2*N_el*xs[i]-1;
+				xs[i+j*spe] += j*(1/(double)N_el);
+				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe);
+				Ps[i+j*spe] = h1s[0]*P[order*j-1] + h1s[1]*P[order*j] + h1s[2]*P[order*j+1];
+			}
+		}
+	}
+
+	//std::vector<double> h1test;
+	//VectorXd h1eval = h1.eval(-1);
+	//h1test.resize(h1eval.size());
+	//VectorXd::Map(&h1test[0], h1eval.size()) = h1eval;
+	output["xgrid"] = xs;
+	output["Pgrid"] = Ps;
 
 	std::ofstream outfile(argv[2]);
-	outfile << std::setw(2) << output << std::endl;
+	outfile << std::setw(6) << output << std::endl;
+
+	// If you want to run python plotting automatically from here
+	///*
+	std::cout << std::endl;
+	std::cout << "Running python plotter ..." << std::endl;
+	std::string ifile = argv[1];
+	std::string ofile = argv[2];
+	std::string pyplot = "./plot/pyplot.py -i " + ifile + " -o " + ofile;
+	std::system(pyplot.c_str());
+	//*/
 
 	return 0;
 }

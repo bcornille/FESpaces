@@ -5,9 +5,9 @@
 		"N" : 2
 	},
 	"Integrator" : {
-		"N" : 7
+		"N" : 12
 	},
-	"Function" : "Two",
-	"Order" : 1,
+	"Function" : "ExpX3pX",
+	"Order" :2,
 	"Formulation" : "Mimetic"
 }
