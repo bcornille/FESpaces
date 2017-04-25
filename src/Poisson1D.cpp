@@ -28,6 +28,7 @@ int main(int argc, char const *argv[])
 	Integrator1D integrate(input["Integrator"]);
 	int order = (int)input["Order"];
 	int N_el = (int)input["Mesh"]["N"] + 1;
+	int DoFs;
 	H1_1D h1(order);
 	L2_1D l2(order);
 	std::shared_ptr<Force1D> force;
@@ -55,6 +56,7 @@ int main(int argc, char const *argv[])
 	if (formulation == "Standard")
 	{
 		// This is for the H1 standard system.
+		DoFs = N_el*order - 1;
 		system.resize(N_el*order - 1, N_el*order - 1);
 		rhs.resize(N_el*order - 1);
 		system.reserve(VectorXi::Constant(N_el*order - 1, 2*order + 1));
@@ -106,6 +108,7 @@ int main(int argc, char const *argv[])
 		 * 		-<u,v> + <p,dv/dx> = 0	for all v in H^1
 		 * 		<du/dx,q> = <f,q>		for all q in L^2
 		 */
+		DoFs = 2*N_el*order + 1;
 		system.resize(2*N_el*order + 1, 2*N_el*order + 1);
 		rhs.resize(2*N_el*order + 1);
 		system.reserve(VectorXi::Constant(2*N_el*order + 1, 4*order + 1));
@@ -148,6 +151,7 @@ int main(int argc, char const *argv[])
 		 * 		<u,v> + <dp/dx,v> = 0	for all v in L^2
 		 * 		<u,dq/dx> = -<f,q>		for all q in H^1
 		 */
+		DoFs = 2*N_el*order - 1;
 		system.resize(2*N_el*order - 1, 2*N_el*order - 1);
 		rhs.resize(2*N_el*order - 1);
 		system.reserve(VectorXi::Constant(2*N_el*order - 1, 3*order));
@@ -210,9 +214,9 @@ int main(int argc, char const *argv[])
 
 	system.makeCompressed();
 
-	std::cout << system << std::endl;
-	std::cout << rhs << std::endl;
-	std::cout << std::endl;
+	// std::cout << system << std::endl;
+	// std::cout << rhs << std::endl;
+	// std::cout << std::endl;
 
 	solver.analyzePattern(system);
 	solver.factorize(system);
@@ -220,7 +224,7 @@ int main(int argc, char const *argv[])
 	// std::cout << std::endl;
 	VectorXd x = solver.solve(rhs);
 
-	std::cout << x << std::endl;
+	// std::cout << x << std::endl;
 
 	double error = 0.0;
 	if (formulation == "Standard")
@@ -261,8 +265,8 @@ int main(int argc, char const *argv[])
 
 	error = sqrt(error);
 
-	std::cout << std::endl;
-	std::cout << error << std::endl;
+	// std::cout << std::endl;
+	// std::cout << error << std::endl;
 
 	// // std::vector<double> v(N_el*order + 1);
 	// std::vector<double> v(N_el*order);
@@ -289,6 +293,8 @@ int main(int argc, char const *argv[])
 
 	output["x"] = mesh.nodes();
 	output["error"] = error;
+	output["N_el"] = N_el;
+	output["DoFs"] = DoFs;
 	// output["u"] = v;
 
 	std::ofstream outfile(argv[2]);
