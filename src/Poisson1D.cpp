@@ -319,63 +319,109 @@ int main(int argc, char const *argv[])
 	output["u"] = u;
 	output["P"] = P;
 
-	//Playing with basis output
-	int spe = 21; //samples per element
-	double len = input["Mesh"]["xmax"] - input["Mesh"]["xmin"];
-	double xe = 0.0;
-	std::vector<double> xs, us, Ps, h1s, l2s;
+	// Set up from grids for plotting output
+	int spe = 41; //samples per element
+	double len = (double)input["Mesh"]["x_max"] - (double)input["Mesh"]["x_min"];
+	std::vector<double> xs, xe, us, Ps, h1s, l2s;
 	xs.resize(spe*N_el);
+	xe.resize(spe);
 	us.resize(spe*N_el);
 	Ps.resize(spe*N_el);
 	h1s.resize(order+1);
 	l2s.resize(order);
 
+	// Determine sample "points" per element - mesh of <spe> points from -1 to 1
+	for (int i=0; i<spe; ++i)
+	{
+		xe[i] = 2*i*(1/(double)(spe-1))-1;
+	}
+
+	// Fill in the grids for plotting output
 	for (int j=0; j<N_el; ++j)
 	{
 		if (j==0)
 		{
 			for (int i=0; i<spe; ++i)
 			{
-				xs[i] = i*(1/(double)N_el)*(1/(double)(spe-1));
-				xe = 2*N_el*xs[i]-1;
-				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe);
-				Ps[i] = h1s[1]*P[0] + h1s[2]*P[1];
+				xs[i] = i*(len/(double)N_el)*(1/(double)(spe-1));
+				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+				VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+				if(formulation == "Mixed") us[i] += h1s[0]*u[0];
+				for (int k=1; k<order+1; ++k)	
+				{
+					if(formulation == "Mixed")
+					{	
+						us[i] += h1s[k]*u[k];
+						Ps[i] += l2s[k-1]*P[k-1];
+					} else
+					{
+						Ps[i] += h1s[k]*P[k-1];
+						if(formulation == "Mimetic") us[i] += l2s[k-1]*u[k-1];
+					}
+				}
 			}
 		} else if (j==(N_el-1))
 		{
 			for (int i=0; i<spe; ++i)
 			{
-				xs[i+j*spe] = i*(1/(double)N_el)*(1/(double)(spe-1));
-				xe = 2*N_el*xs[i]-1;
-				xs[i+j*spe] += j*(1/(double)N_el);
-				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe);
-				Ps[i+j*spe] = h1s[0]*P[order*j-1] + h1s[1]*P[order*j];
+				xs[i+j*spe] = (len/(double)N_el)*(i*(1/(double)(spe-1)) + j);
+				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+				VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+				if(formulation == "Mixed") us[i+j*spe] += h1s[order]*u[order*(j+1)];
+				for (int k=0; k<order; ++k)	
+				{	
+					if(formulation == "Mixed")
+					{	
+						us[i+j*spe] += h1s[k]*u[order*j+k];
+						Ps[i+j*spe] += l2s[k]*P[order*j+k];
+					} else
+					{	
+						Ps[i+j*spe] += h1s[k]*P[order*j+(k-1)];
+						if(formulation == "Mimetic") us[i+j*spe] += l2s[k]*u[order*j+k];
+					}
+				}
 			}
 		} else
 		{
 			for (int i=0; i<spe; ++i)
 			{
-				xs[i+j*spe] = i*(1/(double)N_el)*(1/(double)(spe-1));
-				xe = 2*N_el*xs[i]-1;
-				xs[i+j*spe] += j*(1/(double)N_el);
-				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe);
-				Ps[i+j*spe] = h1s[0]*P[order*j-1] + h1s[1]*P[order*j] + h1s[2]*P[order*j+1];
+				xs[i+j*spe] = (len/(double)N_el)*(i*(1/(double)(spe-1)) + j);
+				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+				VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+				for (int k=0; k<order+1; ++k)	
+				{		
+					if(formulation == "Mixed")
+					{	
+						us[i+j*spe] += h1s[k]*u[order*j+k];
+						if(k != order) Ps[i+j*spe] += l2s[k]*P[order*j+k];
+					} else
+					{	
+						Ps[i+j*spe] += h1s[k]*P[order*j+(k-1)];
+						if ( (formulation == "Mimetic") && (k!=order) )
+						{
+							us[i+j*spe] += l2s[k]*u[order*j+k];
+						}
+					}
+				}
 			}
 		}
 	}
 
-	//std::vector<double> h1test;
-	//VectorXd h1eval = h1.eval(-1);
-	//h1test.resize(h1eval.size());
-	//VectorXd::Map(&h1test[0], h1eval.size()) = h1eval;
+	/* // used to extract some output sometimes during development, can be removed later
+	std::vector<double> test;
+	VectorXd testxd = l2.eval(-1);
+	test.resize(testxd.size());
+	VectorXd::Map(&test[0], testxd.size()) = testxd; 
+	output["temp"] = test; //*/
 	output["xgrid"] = xs;
 	output["Pgrid"] = Ps;
+	output["ugrid"] = us;
 
 	std::ofstream outfile(argv[2]);
-	outfile << std::setw(6) << output << std::endl;
+	outfile << std::setw(7) << output << std::endl;
 
 	// If you want to run python plotting automatically from here
-	///*
+	// /*
 	std::cout << std::endl;
 	std::cout << "Running python plotter ..." << std::endl;
 	std::string ifile = argv[1];

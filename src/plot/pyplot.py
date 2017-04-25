@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import sys, getopt
@@ -31,25 +33,41 @@ def main(argv):
 	with open(ofile) as out_file:
 		output = json.load(out_file)
 
-	# Analytical solution for P
+	# Analytical solution for P and u
 	goldx = np.arange(params["Mesh"]["x_min"],params["Mesh"]["x_max"]+0.001, 0.001)
 	function = params["Function"]
+	formulation = params["Formulation"]
 	if function == "ExpX3pX":
 		goldP = np.exp(goldx)*goldx*(1-goldx)
+		if formulation != "Standard": goldu = np.exp(goldx)*(goldx-1+np.power(goldx,2))
 	elif function == "Two":
 		goldP = goldx*(1-goldx)
+		if formulation != "Standard": goldu = 2*goldx-1
 
-	# Create output plot
+	# Create output plots
+	plt.figure(1)
 	plt.plot(goldx, goldP, 'k')
-	plt.plot(output["xgrid"],output["Pgrid"])
-	title = ('P vs Position, ');
+	plt.plot(output["xgrid"],output["Pgrid"],'b.')
 	plt.xlabel('position')
 	plt.ylabel('P value')
-	plt.title("%s %s" % (title,params["Formulation"]))
+	t1 = ('P vs Position, ');
+	plt.title("%s %s" % (t1,formulation))
 	plt.grid(True)
 	plt.axis([params["Mesh"]["x_min"],params["Mesh"]["x_max"],0,0.5])
 	plt.savefig("./plot/P.png")
 	#plt.show()
+	if formulation != "Standard":
+		plt.figure(2)
+		plt.plot(goldx, goldu, 'k')
+		plt.plot(output["xgrid"],output["ugrid"],'r.')
+		t1 = ('u vs Position, ');
+		plt.xlabel('position')
+		plt.ylabel('u value')
+		plt.title("%s %s" % (t1,formulation))
+		plt.grid(True)
+		plt.axis([params["Mesh"]["x_min"],params["Mesh"]["x_max"],-1,2.8])
+		plt.savefig("./plot/u.png")
+		#plt.show()
 
 if __name__ == "__main__":
    main(sys.argv[1:])
