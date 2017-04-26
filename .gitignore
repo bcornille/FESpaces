@@ -181,4 +181,5 @@ TSWLatexianTemp*
 
 # Other
 src/plot/*.png
+src/plot/*.svg
 src/Eigen

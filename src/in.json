@@ -7,6 +7,11 @@
 	"Integrator" : {
 		"N" : 12
 	},
+	"Plot" : {
+		"Enable" : "On",
+		"SPE" : 51,
+		"Filetype" : "svg"
+	},
 	"Function" : "ExpX3pX",
 	"Order" :2,
 	"Formulation" : "Mimetic"

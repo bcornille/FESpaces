@@ -318,117 +318,120 @@ int main(int argc, char const *argv[])
 	}	
 	output["u"] = u;
 	output["P"] = P;
+	int outargs = 4;
 
-	// Set up from grids for plotting output
-	int spe = 41; //samples per element
-	double len = (double)input["Mesh"]["x_max"] - (double)input["Mesh"]["x_min"];
-	std::vector<double> xs, xe, us, Ps, h1s, l2s;
-	xs.resize(spe*N_el);
-	xe.resize(spe);
-	us.resize(spe*N_el);
-	Ps.resize(spe*N_el);
-	h1s.resize(order+1);
-	l2s.resize(order);
-
-	// Determine sample "points" per element - mesh of <spe> points from -1 to 1
-	for (int i=0; i<spe; ++i)
+	if (input["Plot"]["Enable"] != "On")
 	{
-		xe[i] = 2*i*(1/(double)(spe-1))-1;
-	}
-
-	// Fill in the grids for plotting output
-	for (int j=0; j<N_el; ++j)
+		std::ofstream outfile(argv[2]);
+		outfile << std::setw(outargs) << output << std::endl;
+	} else
 	{
-		if (j==0)
+		// Set up from grids for plotting output
+		int spe = (int)input["Plot"]["SPE"]; //samples per element
+		double len = (double)input["Mesh"]["x_max"] - (double)input["Mesh"]["x_min"];
+		std::vector<double> xs, xe, us, Ps, h1s, l2s;
+		xs.resize(spe*N_el);
+		xe.resize(spe);
+		us.resize(spe*N_el);
+		Ps.resize(spe*N_el);
+		h1s.resize(order+1);
+		l2s.resize(order);
+
+		// Determine sample "points" per element - mesh of <spe> points from -1 to 1
+		for (int i=0; i<spe; ++i)
 		{
-			for (int i=0; i<spe; ++i)
+			xe[i] = 2*i*(1/(double)(spe-1))-1;
+		}
+
+		// Fill in the grids for plotting output
+		for (int j=0; j<N_el; ++j)
+		{
+			if (j==0)
 			{
-				xs[i] = i*(len/(double)N_el)*(1/(double)(spe-1));
-				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
-				VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
-				if(formulation == "Mixed") us[i] += h1s[0]*u[0];
-				for (int k=1; k<order+1; ++k)	
+				for (int i=0; i<spe; ++i)
 				{
-					if(formulation == "Mixed")
-					{	
-						us[i] += h1s[k]*u[k];
-						Ps[i] += l2s[k-1]*P[k-1];
-					} else
+					xs[i] = i*(len/(double)N_el)*(1/(double)(spe-1));
+					VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+					VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+					if(formulation == "Mixed") us[i] += h1s[0]*u[0];
+					for (int k=1; k<order+1; ++k)	
 					{
-						Ps[i] += h1s[k]*P[k-1];
-						if(formulation == "Mimetic") us[i] += l2s[k-1]*u[k-1];
-					}
-				}
-			}
-		} else if (j==(N_el-1))
-		{
-			for (int i=0; i<spe; ++i)
-			{
-				xs[i+j*spe] = (len/(double)N_el)*(i*(1/(double)(spe-1)) + j);
-				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
-				VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
-				if(formulation == "Mixed") us[i+j*spe] += h1s[order]*u[order*(j+1)];
-				for (int k=0; k<order; ++k)	
-				{	
-					if(formulation == "Mixed")
-					{	
-						us[i+j*spe] += h1s[k]*u[order*j+k];
-						Ps[i+j*spe] += l2s[k]*P[order*j+k];
-					} else
-					{	
-						Ps[i+j*spe] += h1s[k]*P[order*j+(k-1)];
-						if(formulation == "Mimetic") us[i+j*spe] += l2s[k]*u[order*j+k];
-					}
-				}
-			}
-		} else
-		{
-			for (int i=0; i<spe; ++i)
-			{
-				xs[i+j*spe] = (len/(double)N_el)*(i*(1/(double)(spe-1)) + j);
-				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
-				VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
-				for (int k=0; k<order+1; ++k)	
-				{		
-					if(formulation == "Mixed")
-					{	
-						us[i+j*spe] += h1s[k]*u[order*j+k];
-						if(k != order) Ps[i+j*spe] += l2s[k]*P[order*j+k];
-					} else
-					{	
-						Ps[i+j*spe] += h1s[k]*P[order*j+(k-1)];
-						if ( (formulation == "Mimetic") && (k!=order) )
+						if(formulation == "Mixed")
+						{	
+							us[i] += h1s[k]*u[k];
+							Ps[i] += l2s[k-1]*P[k-1];
+						} else
 						{
-							us[i+j*spe] += l2s[k]*u[order*j+k];
+							Ps[i] += h1s[k]*P[k-1];
+							if(formulation == "Mimetic") us[i] += l2s[k-1]*u[k-1];
+						}
+					}
+				}
+			} else if (j==(N_el-1))
+			{
+				for (int i=0; i<spe; ++i)
+				{
+					xs[i+j*spe] = (len/(double)N_el)*(i*(1/(double)(spe-1)) + j);
+					VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+					VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+					if(formulation == "Mixed") us[i+j*spe] += h1s[order]*u[order*(j+1)];
+					for (int k=0; k<order; ++k)	
+					{	
+						if(formulation == "Mixed")
+						{	
+							us[i+j*spe] += h1s[k]*u[order*j+k];
+							Ps[i+j*spe] += l2s[k]*P[order*j+k];
+						} else
+						{	
+							Ps[i+j*spe] += h1s[k]*P[order*j+(k-1)];
+							if(formulation == "Mimetic") us[i+j*spe] += l2s[k]*u[order*j+k];
+						}
+					}
+				}
+			} else
+			{
+				for (int i=0; i<spe; ++i)
+				{
+					xs[i+j*spe] = (len/(double)N_el)*(i*(1/(double)(spe-1)) + j);
+					VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+					VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+					for (int k=0; k<order+1; ++k)	
+					{		
+						if(formulation == "Mixed")
+						{	
+							us[i+j*spe] += h1s[k]*u[order*j+k];
+							if(k != order) Ps[i+j*spe] += l2s[k]*P[order*j+k];
+						} else
+						{	
+							Ps[i+j*spe] += h1s[k]*P[order*j+(k-1)];
+							if ( (formulation == "Mimetic") && (k!=order) )
+							{
+								us[i+j*spe] += l2s[k]*u[order*j+k];
+							}
 						}
 					}
 				}
 			}
 		}
+
+		output["xgrid"] = xs;
+		output["Pgrid"] = Ps;
+		output["ugrid"] = us;
+		outargs += 3;
+
+		std::ofstream outfile(argv[2]);
+		outfile << std::setw(outargs) << output << std::endl;
+
+		// If you want to run python plotting automatically from here
+		// /*
+		std::cout << std::endl;
+		std::cout << "Running python plotter ..." << std::endl;
+		std::string ifile = argv[1];
+		std::string ofile = argv[2];
+		std::string pyplot = "./plot/pyplot.py -i " + ifile + " -o " + ofile;
+		std::system(pyplot.c_str());
+		//*/
 	}
-
-	/* // used to extract some output sometimes during development, can be removed later
-	std::vector<double> test;
-	VectorXd testxd = l2.eval(-1);
-	test.resize(testxd.size());
-	VectorXd::Map(&test[0], testxd.size()) = testxd; 
-	output["temp"] = test; //*/
-	output["xgrid"] = xs;
-	output["Pgrid"] = Ps;
-	output["ugrid"] = us;
-
-	std::ofstream outfile(argv[2]);
-	outfile << std::setw(7) << output << std::endl;
-
-	// If you want to run python plotting automatically from here
-	// /*
-	std::cout << std::endl;
-	std::cout << "Running python plotter ..." << std::endl;
-	std::string ifile = argv[1];
-	std::string ofile = argv[2];
-	std::string pyplot = "./plot/pyplot.py -i " + ifile + " -o " + ofile;
-	std::system(pyplot.c_str());
-	//*/
 
 	return 0;
 }
