@@ -1,0 +1,15 @@
+{
+	"Mesh" : {
+		"x_min" : 0.0,
+		"x_max" : 1.0,
+		"N" : 63,
+		"c" : 0.4,
+		"map_order" : 2
+	},
+	"Integrator" : {
+		"N" : 13
+	},
+	"Function" : "ExpX3pX",
+	"Order" : 3,
+	"Formulation" : "Mixed"
+}
