@@ -20,7 +20,7 @@ plt.figure(figsize=(size, size))
 
 for p in range(1, 7):
     handles.append(plt.Line2D([], [], color=colors[
-                   p - 1], label=r'$p = {}$'.format(p)))
+                   p - 1], label=r'$k = {}$'.format(p)))
 
 for i, formulation in enumerate(['standard', 'mixed', 'dual']):
     N_temp_form = []
