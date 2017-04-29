@@ -28,23 +28,27 @@ Mesh1D::Mesh1D(nlohmann::json params) :
 	N_node((int)params["N"]), N_segments((int)params["N"] + 1),
 	x((int)params["N"] + 2), inner_nodes((int)params["N"] + 1)
 {
-	double deltax = (((double)params["x_max"] - (double)params["x_min"])
-		/(x.size() - 1));
-	for (int i = 0; i < x.size(); ++i)
+	double x_len = (double)params["x_max"] - (double)params["x_min"];
+	double deltaxi = 2.0/N_segments;
+	double c = (double)params["c"];
+	x[0] = (double)params["x_min"];
+	for (int i = 1; i < N_segments; ++i)
 	{
-		x[i] = (int)params["x_min"] + i*deltax;
+		double xi = -1.0 + i*deltaxi;
+		x[i] = (1.0 + xi + c*sin(pi()*xi))*x_len/2.0;
 	}
+	x[N_segments] = (double)params["x_max"];
 	GaussLobatto gl((int)params["map_order"] + 1);
 	RowVectorXd temp_nodes(gl.getN());
-	double c = (double)params["c"];
-	for (int i = 0; i < inner_nodes.size(); ++i)
+	for (int i = 0; i < N_segments; ++i)
 	{
-		for (int j = 0; j < temp_nodes.size(); ++j)
+		Transform1D segment(-1.0 + i*deltaxi, -1.0 + (i + 1)*deltaxi);
+		for (int j = 0; j < gl.getN(); ++j)
 		{
-			double xi = gl.getNode(j);
-			temp_nodes[j] = deltax*(1.0 + xi + c*cos(pi()/2.0*xi+pi()*(i+1)))/2.0;
+			double xi = segment.forwardTransform(gl.getNode(j));
+			temp_nodes[j] = x_len*(1.0 + xi + c*sin(pi()*xi))/2.0;
 		}
-		inner_nodes[i] = temp_nodes + RowVectorXd::Constant(temp_nodes.size(), x[i]);
+		inner_nodes[i] = temp_nodes;
 	}
 }
 
