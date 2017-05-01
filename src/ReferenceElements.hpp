@@ -8,7 +8,7 @@ using namespace Eigen;
 class H1_1D
 {
 	public:
-		H1_1D(int p = 0);
+		H1_1D(int p = 1);
 		~H1_1D() = default;
 		VectorXd eval(double x);
 		VectorXd evalD(double x);
@@ -37,7 +37,7 @@ inline int H1_1D::dofs()
 class L2_1D
 {
 	public:
-		L2_1D(int p = 0);
+		L2_1D(int p = 1);
 		~L2_1D() = default;
 		VectorXd eval(double x);
 		int dofs();
@@ -60,7 +60,7 @@ inline int L2_1D::dofs()
 class L2_1D_EF
 {
 	public:
-		L2_1D_EF(int p = 0);
+		L2_1D_EF(int p = 1);
 		~L2_1D_EF() = default;
 		VectorXd eval(double x);
 		int dofs();
