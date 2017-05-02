@@ -233,4 +233,16 @@ inline double Integrator1D::error(const std::shared_ptr<Force1D>& f, L2_1D_EF v,
 	return err;
 }
 
+// class Integrator2D
+// {
+// 	public:
+// 		Integrator2D(json params);
+// 		~Integrator2D() = default;
+// 		MatrixXd laplace(H1_2D u, H1_2D v, Transform2D t)
+// 	private:
+// 		GaussLegendre gl;
+// };
+
+// Integrator2D::Integrator2D(json params) : gl((int)params["N"]) {}
+
 #endif
