@@ -121,4 +121,36 @@ inline int H1_2D::dofs()
 	return n_dof;
 }
 
+class HCurl_2D
+{
+	public:
+		HCurl_2D(int p = 1);
+		~HCurl_2D() = default;
+		MatrixX2d eval(Vector2d x);
+		int dofs();
+	private:
+		int n_dof;
+		GaussLobatto gll;
+		GaussLegendre gl;
+};
+
+HCurl_2D::HCurl_2D(int p) : n_dof(p*(p + 1)), gll(p + 1), gl(p) {}
+
+inline MatrixX2d HCurl_2D::eval(Vector2d x)
+{
+	MatrixX2d vals(n_dof, 2);
+	MatrixXd mat_xvals = (gl.evalGL(x[0]).leftCols<1>()
+		*gll.evalGLL(x[1]).leftCols<1>().transpose());
+	vals.leftCols<1>() = Map<VectorXd>(mat_xvals.data(), n_dof);
+	MatrixXd mat_yvals = (gll.evalGLL(x[0]).leftCols<1>()
+		*gl.evalGL(x[1]).leftCols<1>().transpose());
+	vals.rightCols<1>() = Map<VectorXd>(mat_yvals.data(), n_dof);
+	return vals;
+}
+
+inline int HCurl_2D::dofs()
+{
+	return n_dof;
+}
+
 #endif
