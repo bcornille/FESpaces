@@ -80,4 +80,45 @@ inline int L2_1D_EF::dofs()
 	return ef.getN();
 }
 
+class H1_2D
+{
+	public:
+		H1_2D(int p = 1);
+		~H1_2D() = default;
+		VectorXd eval(Vector2d x);
+		MatrixX2d evalGrad(Vector2d x);
+		int dofs();
+	private:
+		int n_dof;
+		GaussLobatto gll;
+};
+
+H1_2D::H1_2D(int p) : n_dof((p + 1)*(p + 1)), gll(p + 1) {}
+
+inline VectorXd H1_2D::eval(Vector2d x)
+{
+	VectorXd vals(n_dof);
+	MatrixXd mat_vals = (gll.evalGLL(x[0]).leftCols<1>()
+		*gll.evalGLL(x[1]).leftCols<1>().transpose());
+	vals = Map<VectorXd>(mat_vals.data(), n_dof);
+	return vals;
+}
+
+inline MatrixX2d H1_2D::evalGrad(Vector2d x)
+{
+	MatrixX2d grad(n_dof, 2);
+	MatrixX2d gll_x = gll.evalGLL(x[0]);
+	MatrixX2d gll_y = gll.evalGLL(x[1]);
+	MatrixXd mat_vals = gll_x.rightCols<1>()*gll_y.leftCols<1>().transpose();
+	grad.leftCols<1>() = Map<VectorXd>(mat_vals.data(), n_dof);
+	mat_vals = gll_x.leftCols<1>()*gll_y.rightCols<1>().transpose();
+	grad.rightCols<1>() = Map<VectorXd>(mat_vals.data(), n_dof);
+	return grad;
+}
+
+inline int H1_2D::dofs()
+{
+	return n_dof;
+}
+
 #endif
