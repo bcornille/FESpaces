@@ -129,26 +129,75 @@ class HCurl_2D
 		MatrixX2d eval(Vector2d x);
 		int dofs();
 	private:
+		int dof_per_dim;
 		int n_dof;
 		GaussLobatto gll;
 		GaussLegendre gl;
 };
 
-HCurl_2D::HCurl_2D(int p) : n_dof(p*(p + 1)), gll(p + 1), gl(p) {}
+HCurl_2D::HCurl_2D(int p) : dof_per_dim(p*(p + 1)), n_dof(2*p*(p + 1)), gll(p + 1), gl(p) {}
 
 inline MatrixX2d HCurl_2D::eval(Vector2d x)
 {
 	MatrixX2d vals(n_dof, 2);
+	vals.setZero();
 	MatrixXd mat_xvals = (gl.evalGL(x[0]).leftCols<1>()
 		*gll.evalGLL(x[1]).leftCols<1>().transpose());
-	vals.leftCols<1>() = Map<VectorXd>(mat_xvals.data(), n_dof);
+	vals.topLeftCorner(dof_per_dim, 1) = Map<VectorXd>(mat_xvals.data(), dof_per_dim);
 	MatrixXd mat_yvals = (gll.evalGLL(x[0]).leftCols<1>()
 		*gl.evalGL(x[1]).leftCols<1>().transpose());
-	vals.rightCols<1>() = Map<VectorXd>(mat_yvals.data(), n_dof);
+	vals.bottomRightCorner(dof_per_dim,1) = Map<VectorXd>(mat_yvals.data(), dof_per_dim);
 	return vals;
 }
 
 inline int HCurl_2D::dofs()
+{
+	return n_dof;
+}
+
+class HDiv_2D
+{
+	public:
+		HDiv_2D(int p = 1);
+		~HDiv_2D() = default;
+		MatrixX2d eval(Vector2d x);
+		VectorXd evalDiv(Vector2d x);
+		int dofs();
+	private:
+		int dof_per_dim;
+		int n_dof;
+		GaussLobatto gll;
+		GaussLegendre gl;
+};
+
+HDiv_2D::HDiv_2D(int p) : dof_per_dim((p + 1)*p), n_dof(2*(p + 1)*p), gll(p + 1), gl(p) {}
+
+inline MatrixX2d HDiv_2D::eval(Vector2d x)
+{
+	MatrixX2d vals(n_dof, 2);
+	vals.setZero();
+	MatrixXd mat_yvals = (gl.evalGL(x[0]).leftCols<1>()
+		*gll.evalGLL(x[1]).leftCols<1>().transpose());
+	vals.topRightCorner(dof_per_dim, 1) = Map<VectorXd>(mat_yvals.data(), dof_per_dim);
+	MatrixXd mat_xvals = (gll.evalGLL(x[0]).leftCols<1>()
+		*gl.evalGL(x[1]).leftCols<1>().transpose());
+	vals.bottomLeftCorner(dof_per_dim,1) = Map<VectorXd>(mat_xvals.data(), dof_per_dim);
+	return vals;
+}
+
+inline VectorXd HDiv_2D::evalDiv(Vector2d x)
+{
+	VectorXd divg(n_dof);
+	MatrixXd mat_yvals = (gl.evalGL(x[0]).leftCols<1>()
+		*gll.evalGLL(x[1]).rightCols<1>().transpose());
+	divg.head(dof_per_dim) = Map<VectorXd>(mat_yvals.data(), dof_per_dim);
+	MatrixXd mat_xvals = (gll.evalGLL(x[0]).rightCols<1>()
+		*gl.evalGL(x[1]).leftCols<1>().transpose());
+	divg.tail(dof_per_dim) = Map<VectorXd>(mat_xvals.data(), dof_per_dim);
+	return divg;
+}
+
+inline int HDiv_2D::dofs()
 {
 	return n_dof;
 }
