@@ -202,4 +202,32 @@ inline int HDiv_2D::dofs()
 	return n_dof;
 }
 
+class L2_2D
+{
+	public:
+		L2_2D(int p = 1);
+		~L2_2D() = default;
+		VectorXd eval(Vector2d x);
+		int dofs();
+	private:
+		int n_dof;
+		GaussLegendre gl;
+};
+
+L2_2D::L2_2D(int p) : n_dof(p*p), gl(p) {}
+
+inline VectorXd L2_2D::eval(Vector2d x)
+{
+	VectorXd vals(n_dof);
+	MatrixXd mat_vals = (gl.evalGL(x[0]).leftCols<1>()
+		*gl.evalGL(x[1]).leftCols<1>().transpose());
+	vals = Map<VectorXd>(mat_vals.data(), n_dof);
+	return vals;
+}
+
+inline int L2_2D::dofs()
+{
+	return n_dof;
+}
+
 #endif
