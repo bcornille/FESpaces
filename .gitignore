@@ -1,3 +1,6 @@
+## Sublime stuff
+*.sublime*
+
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
@@ -178,3 +181,4 @@ TSWLatexianTemp*
 
 # KBibTeX
 *~[0-9]*
+
