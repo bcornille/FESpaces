@@ -1,7 +1,9 @@
-#include <cmath>
+#include "Basis1D.hpp"
 
 #ifndef _ForcingFunctions_hpp
 #define _ForcingFunctions_hpp
+
+using namespace Eigen;
 
 class Force1D
 {
@@ -48,6 +50,33 @@ double Two::f(double x)
 double Two::sol(double x)
 {
 	return x*(1.0 - x);
+}
+
+class Force2D
+{
+	public:
+		// Force2D() = default;
+		virtual ~Force2D() = default;
+		virtual double f(Vector2d x) = 0;
+		virtual double sol(Vector2d x) = 0;
+};
+
+class SinXY : public Force2D
+{
+	public:
+		~SinXY() = default;
+		double f(Vector2d x);
+		double sol(Vector2d x);
+};
+
+double SinXY::f(Vector2d x)
+{
+	return pow(pi(), 2)*(pow(x[0], 2) + pow(x[1], 2))*sin(pi()*x[0]*x[1]);
+}
+
+double SinXY::sol(Vector2d x)
+{
+	return sin(pi()*x[0]*x[1]);
 }
 
 #endif
