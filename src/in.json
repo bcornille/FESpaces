@@ -2,14 +2,17 @@
 	"Mesh" : {
 		"x_min" : 0.0,
 		"x_max" : 1.0,
-		"N" : 1,
-		"c" : 0.6,
-		"map_order" : 3
+		"N" : 4
 	},
 	"Integrator" : {
-		"N" : 9
+		"N" : 12
+	},
+	"Plot" : {
+		"Enable" : "On",
+		"SPE" : 51,
+		"Filetype" : "pdf"
 	},
 	"Function" : "ExpX3pX",
-	"Order" : 4,
-	"Formulation" : "Mixed"
+	"Order" : 2,
+	"Formulation" : "Standard"
 }
