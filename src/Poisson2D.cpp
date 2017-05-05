@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include "Integrators.hpp"
+#include "ForcingFunctions.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -24,6 +25,18 @@ int main(int argc, char const *argv[])
 	L2_2D l2(order);
 	HCurl_2D hcurl(order);
 	Transform2D t(Eigen::Vector2d::Constant(0.0), Eigen::Vector2d::Constant(1.0));
+	std::shared_ptr<Force2D> force;
+
+	std::string force_type = input["Function"];
+	if (force_type == "SinXSinY")
+	{
+		force = std::make_shared<SinXSinY>();
+	}
+	else
+	{
+		std::cerr << "Unknown forcing function." << std::endl;
+		return 2;
+	}
 
 	// std::cout << integrate.laplace(h1, h1, t) << std::endl;
 	// std::cout << std::endl;
@@ -37,7 +50,12 @@ int main(int argc, char const *argv[])
 	// std::cout << std::endl;
 	// std::cout << integrate.grad(h1, hcurl, t) << std::endl;
 	// std::cout << std::endl;
-	// std::cout << integrate.mass(hcurl, hcurl, t).partialPivLu().solve(integrate.grad(h1, hcurl, t)) << std::endl;
+	// std::cout << (integrate.mass(hcurl, hcurl, t).partialPivLu()
+	// 	.solve(integrate.grad(h1, hcurl, t))) << std::endl;
+	// std::cout << std::endl;
+	std::cout << integrate.force(force, h1, t) << std::endl;
+	std::cout << std::endl;
+	std::cout << integrate.force(force, l2, t) << std::endl;
 
 	return 0;
 }

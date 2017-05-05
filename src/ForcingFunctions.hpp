@@ -61,22 +61,22 @@ class Force2D
 		virtual double sol(Vector2d x) = 0;
 };
 
-class SinXY : public Force2D
+class SinXSinY : public Force2D
 {
 	public:
-		~SinXY() = default;
+		~SinXSinY() = default;
 		double f(Vector2d x);
 		double sol(Vector2d x);
 };
 
-double SinXY::f(Vector2d x)
+double SinXSinY::f(Vector2d x)
 {
-	return pow(pi(), 2)*(pow(x[0], 2) + pow(x[1], 2))*sin(pi()*x[0]*x[1]);
+	return 2*pow(pi(), 2)*sin(pi()*x[0])*sin(pi()*x[1]);
 }
 
-double SinXY::sol(Vector2d x)
+double SinXSinY::sol(Vector2d x)
 {
-	return sin(pi()*x[0]*x[1]);
+	return sin(pi()*x[0])*sin(pi()*x[1]);
 }
 
 #endif

@@ -1,6 +1,7 @@
 {
+  "Function" : "SinXSinY",
   "Integrator" : {
-  	"N" : 9
+  	"N" : 5
   },
   "Order" : 2
 }

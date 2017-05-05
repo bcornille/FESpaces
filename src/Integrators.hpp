@@ -25,9 +25,12 @@ class Integrator1D
 		VectorXd force(const std::shared_ptr<Force1D>& f, H1_1D v, Transform1D t);
 		VectorXd force(const std::shared_ptr<Force1D>& f, L2_1D v, Transform1D t);
 		VectorXd force(const std::shared_ptr<Force1D>& f, L2_1D_EF v, Transform1D t);
-		double error(const std::shared_ptr<Force1D>& f, H1_1D v, VectorXd coeffs, Transform1D t);
-		double error(const std::shared_ptr<Force1D>& f, L2_1D v, VectorXd coeffs, Transform1D t);
-		double error(const std::shared_ptr<Force1D>& f, L2_1D_EF v, VectorXd coeffs, Transform1D t);
+		double error(const std::shared_ptr<Force1D>& f, H1_1D v,
+			VectorXd coeffs, Transform1D t);
+		double error(const std::shared_ptr<Force1D>& f, L2_1D v,
+			VectorXd coeffs, Transform1D t);
+		double error(const std::shared_ptr<Force1D>& f, L2_1D_EF v,
+			VectorXd coeffs, Transform1D t);
 	private:
 		GaussLegendre gl;
 };
@@ -245,6 +248,12 @@ class Integrator2D
 		MatrixXd mass(HCurl_2D u, HCurl_2D v, Transform2D t);
 		MatrixXd grad(H1_2D u, HCurl_2D v, Transform2D t);
 		MatrixXd div(HCurl_2D u, H1_2D v, Transform2D t);
+		VectorXd force(const std::shared_ptr<Force2D>& f, H1_2D v, Transform2D t);
+		VectorXd force(const std::shared_ptr<Force2D>& f, L2_2D v, Transform2D t);
+		// double error(const std::shared_ptr<Force2D>& f, H1_2D v,
+		// 	VectorXd coeffs, Transform2D t);
+		// double error(const std::shared_ptr<Force2D>& f, L2_2D v,
+		// 	VectorXd coeffs, Transform2D t);
 	private:
 		GaussLegendre gl;
 };
@@ -394,6 +403,48 @@ inline MatrixXd Integrator2D::div(HCurl_2D u, H1_2D v, Transform2D t)
 		}
 	}
 	return matrix;
+}
+
+inline VectorXd Integrator2D::force(const std::shared_ptr<Force2D>& f, H1_2D v,
+	Transform2D t)
+{
+	VectorXd rhs(v.dofs());
+	rhs.setZero();
+	for (int j = 0; j < gl.getN(); ++j)
+	{
+		Vector2d x_hat;
+		x_hat[1] = gl.getNode(j);
+		double w_j = gl.getWeight(j);
+		for (int i = 0; i < gl.getN(); ++i)
+		{
+			x_hat[0] = gl.getNode(i);
+			Vector2d x = t.forwardTransform(x_hat);
+			VectorXd v_vals = v.eval(x_hat);
+			rhs += f->f(x)*v_vals*t.jacobian(x_hat)*gl.getWeight(i)*w_j;
+		}
+	}
+	return rhs;
+}
+
+inline VectorXd Integrator2D::force(const std::shared_ptr<Force2D>& f, L2_2D v,
+	Transform2D t)
+{
+	VectorXd rhs(v.dofs());
+	rhs.setZero();
+	for (int j = 0; j < gl.getN(); ++j)
+	{
+		Vector2d x_hat;
+		x_hat[1] = gl.getNode(j);
+		double w_j = gl.getWeight(j);
+		for (int i = 0; i < gl.getN(); ++i)
+		{
+			x_hat[0] = gl.getNode(i);
+			Vector2d x = t.forwardTransform(x_hat);
+			VectorXd v_vals = v.eval(x_hat);
+			rhs += f->f(x)*v_vals*t.jacobian(x_hat)*gl.getWeight(i)*w_j;
+		}
+	}
+	return rhs;
 }
 
 #endif
