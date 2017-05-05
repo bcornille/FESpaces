@@ -74,7 +74,7 @@ class GaussLegendre : public Basis1D
 		double getWeight(int i);
 		int getN();
 	private:
-		const int n_nodes;
+		int n_nodes;
 		MatrixXd leg2lag;
 		PartialPivLU<MatrixXd> lu;
 		VectorXd node, weight;
@@ -137,7 +137,7 @@ class GaussLobatto : public Basis1D
 		double getWeight(int i);
 		int getN();
 	private:
-		const int n_nodes;
+		int n_nodes;
 		MatrixXd leg2lag;
 		PartialPivLU<MatrixXd> lu;
 		VectorXd node, weight;
@@ -205,7 +205,7 @@ class EdgeFunction : private GaussLobatto
 		VectorXd evalEF(double x);
 		int getN();
 	private:
-		const int n_segments;
+		int n_segments;
 };
 
 EdgeFunction::EdgeFunction(int k, double eps) :

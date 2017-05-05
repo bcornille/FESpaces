@@ -215,9 +215,9 @@ int main(int argc, char const *argv[])
 
 	system.makeCompressed();
 
-	std::cout << system << std::endl;
-	std::cout << rhs << std::endl;
-	std::cout << std::endl;
+	// std::cout << system << std::endl;
+	// std::cout << rhs << std::endl;
+	// std::cout << std::endl;
 
 	solver.analyzePattern(system);
 	solver.factorize(system);
@@ -225,7 +225,7 @@ int main(int argc, char const *argv[])
 	// std::cout << std::endl;
 	VectorXd x = solver.solve(rhs);
 
-	std::cout << x << std::endl;
+	// std::cout << x << std::endl;
 
 	double error = 0.0;
 	if (formulation == "Standard")
@@ -266,8 +266,8 @@ int main(int argc, char const *argv[])
 
 	error = sqrt(error);
 
-	std::cout << std::endl;
-	std::cout << error << std::endl;
+	// std::cout << std::endl;
+	std::cout << "Solution error: " << error << std::endl;
 
 	// // std::vector<double> v(N_el*order + 1);
 	// std::vector<double> v(N_el*order);
@@ -300,7 +300,7 @@ int main(int argc, char const *argv[])
 	if (formulation == "Standard")
 	{
 		P.resize(size);
-		VectorXd::Map(&P[0], x.size()) = x;  
+		VectorXd::Map(&P[0], x.size()) = x;
 	}
 	else if(formulation == "Mixed")
 	{
@@ -344,72 +344,72 @@ int main(int argc, char const *argv[])
 		}
 
 		// Fill in the grids for plotting output
-		for (int j=0; j<N_el; ++j)
+		Transform1D transform;
+		transform = mesh.getTransform(0);
+		for (int i = 0; i < spe; ++i)
 		{
-			if (j==0)
+			xs[i] = transform.forwardTransform(xe[i]);
+			VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+			VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+			if(formulation == "Mixed") us[i] += h1s[0]*u[0];
+			for (int k=1; k<order+1; ++k)
 			{
-				for (int i=0; i<spe; ++i)
+				if(formulation == "Mixed")
 				{
-					xs[i] = i*(len/(double)N_el)*(1/(double)(spe-1));
-					VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
-					VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
-					if(formulation == "Mixed") us[i] += h1s[0]*u[0];
-					for (int k=1; k<order+1; ++k)	
+					us[i] += h1s[k]*u[k];
+					Ps[i] += l2s[k-1]*P[k-1];
+				}
+				else
+				{
+					Ps[i] += h1s[k]*P[k-1];
+					if(formulation == "Mimetic") us[i] += l2s[k-1]*u[k-1];
+				}
+			}
+		}
+		for (int j=1; j < N_el - 1; ++j)
+		{
+			transform = mesh.getTransform(j);
+			for (int i=0; i<spe; ++i)
+			{
+				xs[i+j*spe] = transform.forwardTransform(xe[i]);
+				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+				VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+				for (int k=0; k<order+1; ++k)
+				{
+					if(formulation == "Mixed")
 					{
-						if(formulation == "Mixed")
-						{	
-							us[i] += h1s[k]*u[k];
-							Ps[i] += l2s[k-1]*P[k-1];
-						} else
+						us[i+j*spe] += h1s[k]*u[order*j+k];
+						if(k != order) Ps[i+j*spe] += l2s[k]*P[order*j+k];
+					}
+					else
+					{
+						Ps[i+j*spe] += h1s[k]*P[order*j+(k-1)];
+						if ( (formulation == "Mimetic") && (k!=order) )
 						{
-							Ps[i] += h1s[k]*P[k-1];
-							if(formulation == "Mimetic") us[i] += l2s[k-1]*u[k-1];
+							us[i+j*spe] += l2s[k]*u[order*j+k];
 						}
 					}
 				}
-			} else if (j==(N_el-1))
+			}
+		}
+		transform = mesh.getTransform(N_el-1);
+		for (int i = 0; i < spe; ++i)
+		{
+			xs[i+(N_el-1)*spe] = transform.forwardTransform(xe[i]);
+			VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+			VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+			if(formulation == "Mixed") us[i+(N_el-1)*spe] += h1s[order]*u[order*N_el];
+			for (int k=0; k<order; ++k)
 			{
-				for (int i=0; i<spe; ++i)
+				if(formulation == "Mixed")
 				{
-					xs[i+j*spe] = (len/(double)N_el)*(i*(1/(double)(spe-1)) + j);
-					VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
-					VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
-					if(formulation == "Mixed") us[i+j*spe] += h1s[order]*u[order*(j+1)];
-					for (int k=0; k<order; ++k)	
-					{	
-						if(formulation == "Mixed")
-						{	
-							us[i+j*spe] += h1s[k]*u[order*j+k];
-							Ps[i+j*spe] += l2s[k]*P[order*j+k];
-						} else
-						{	
-							Ps[i+j*spe] += h1s[k]*P[order*j+(k-1)];
-							if(formulation == "Mimetic") us[i+j*spe] += l2s[k]*u[order*j+k];
-						}
-					}
+					us[i+(N_el-1)*spe] += h1s[k]*u[order*(N_el-1)+k];
+					Ps[i+(N_el-1)*spe] += l2s[k]*P[order*(N_el-1)+k];
 				}
-			} else
-			{
-				for (int i=0; i<spe; ++i)
+				else
 				{
-					xs[i+j*spe] = (len/(double)N_el)*(i*(1/(double)(spe-1)) + j);
-					VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
-					VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
-					for (int k=0; k<order+1; ++k)	
-					{		
-						if(formulation == "Mixed")
-						{	
-							us[i+j*spe] += h1s[k]*u[order*j+k];
-							if(k != order) Ps[i+j*spe] += l2s[k]*P[order*j+k];
-						} else
-						{	
-							Ps[i+j*spe] += h1s[k]*P[order*j+(k-1)];
-							if ( (formulation == "Mimetic") && (k!=order) )
-							{
-								us[i+j*spe] += l2s[k]*u[order*j+k];
-							}
-						}
-					}
+					Ps[i+(N_el-1)*spe] += h1s[k]*P[order*(N_el-1)+(k-1)];
+					if(formulation == "Mimetic") us[i+(N_el-1)*spe] += l2s[k]*u[order*(N_el-1)+k];
 				}
 			}
 		}
