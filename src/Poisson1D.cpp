@@ -7,6 +7,7 @@
 #include "Mesh1D.hpp"
 #include "Integrators.hpp"
 #include "ReferenceElements.hpp"
+#include <cstdlib>
 
 using namespace Eigen;
 
@@ -28,6 +29,7 @@ int main(int argc, char const *argv[])
 	Integrator1D integrate(input["Integrator"]);
 	int order = (int)input["Order"];
 	int N_el = (int)input["Mesh"]["N"] + 1;
+	int size = 0;
 	H1_1D h1(order);
 	L2_1D l2(order);
 	std::shared_ptr<Force1D> force;
@@ -55,8 +57,9 @@ int main(int argc, char const *argv[])
 	if (formulation == "Standard")
 	{
 		// This is for the H1 standard system.
-		system.resize(N_el*order - 1, N_el*order - 1);
-		rhs.resize(N_el*order - 1);
+		size = N_el*order - 1;
+		system.resize(size, size);
+		rhs.resize(size);
 		system.reserve(VectorXi::Constant(N_el*order - 1, 2*order + 1));
 		system.setZero();
 		rhs.setZero();
@@ -106,8 +109,9 @@ int main(int argc, char const *argv[])
 		 * 		-<u,v> + <p,dv/dx> = 0	for all v in H^1
 		 * 		<du/dx,q> = <f,q>		for all q in L^2
 		 */
-		system.resize(2*N_el*order + 1, 2*N_el*order + 1);
-		rhs.resize(2*N_el*order + 1);
+		size = 2*N_el*order + 1;
+		system.resize(size, size);
+		rhs.resize(size);
 		system.reserve(VectorXi::Constant(2*N_el*order + 1, 4*order + 1));
 		system.setZero();
 		rhs.setZero();
@@ -148,8 +152,9 @@ int main(int argc, char const *argv[])
 		 * 		<u,v> + <dp/dx,v> = 0	for all v in L^2
 		 * 		<u,dq/dx> = -<f,q>		for all q in H^1
 		 */
-		system.resize(2*N_el*order - 1, 2*N_el*order - 1);
-		rhs.resize(2*N_el*order - 1);
+		size = 2*N_el*order - 1;
+		system.resize(size, size);
+		rhs.resize(size);
 		system.reserve(VectorXi::Constant(2*N_el*order - 1, 3*order));
 		system.setZero();
 		rhs.setZero();
@@ -289,10 +294,144 @@ int main(int argc, char const *argv[])
 
 	output["x"] = mesh.nodes();
 	output["error"] = error;
-	// output["u"] = v;
 
-	std::ofstream outfile(argv[2]);
-	outfile << std::setw(2) << output << std::endl;
+	// Also convert x to u and P vectors for the json output
+	std::vector<double> u, P;
+	if (formulation == "Standard")
+	{
+		P.resize(size);
+		VectorXd::Map(&P[0], x.size()) = x;  
+	}
+	else if(formulation == "Mixed")
+	{
+		P.resize(N_el*order);
+		u.resize(N_el*order + 1);
+		VectorXd::Map(&P[0], P.size()) = x.tail(P.size());
+		VectorXd::Map(&u[0], u.size()) = x.head(u.size());
+	}
+	else if (formulation == "Mimetic")
+	{
+		P.resize(N_el*order - 1);
+		u.resize(N_el*order);
+		VectorXd::Map(&P[0], P.size()) = x.tail(P.size());
+		VectorXd::Map(&u[0], u.size()) = x.head(u.size());
+	}	
+	output["u"] = u;
+	output["P"] = P;
+	int outargs = 4;
+
+	if (input["Plot"]["Enable"] != "On")
+	{
+		std::ofstream outfile(argv[2]);
+		outfile << std::setw(outargs) << output << std::endl;
+	} else
+	{
+		// Set up from grids for plotting output
+		int spe = (int)input["Plot"]["SPE"]; //samples per element
+		double len = (double)input["Mesh"]["x_max"] - (double)input["Mesh"]["x_min"];
+		std::vector<double> xs, xe, us, Ps, h1s, l2s;
+		xs.resize(spe*N_el);
+		xe.resize(spe);
+		us.resize(spe*N_el);
+		Ps.resize(spe*N_el);
+		h1s.resize(order+1);
+		l2s.resize(order);
+
+		// Determine sample "points" per element - mesh of <spe> points from -1 to 1
+		for (int i=0; i<spe; ++i)
+		{
+			xe[i] = 2*i*(1/(double)(spe-1))-1;
+		}
+
+		// Fill in the grids for plotting output
+		for (int j=0; j<N_el; ++j)
+		{
+			if (j==0)
+			{
+				for (int i=0; i<spe; ++i)
+				{
+					xs[i] = i*(len/(double)N_el)*(1/(double)(spe-1));
+					VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+					VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+					if(formulation == "Mixed") us[i] += h1s[0]*u[0];
+					for (int k=1; k<order+1; ++k)	
+					{
+						if(formulation == "Mixed")
+						{	
+							us[i] += h1s[k]*u[k];
+							Ps[i] += l2s[k-1]*P[k-1];
+						} else
+						{
+							Ps[i] += h1s[k]*P[k-1];
+							if(formulation == "Mimetic") us[i] += l2s[k-1]*u[k-1];
+						}
+					}
+				}
+			} else if (j==(N_el-1))
+			{
+				for (int i=0; i<spe; ++i)
+				{
+					xs[i+j*spe] = (len/(double)N_el)*(i*(1/(double)(spe-1)) + j);
+					VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+					VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+					if(formulation == "Mixed") us[i+j*spe] += h1s[order]*u[order*(j+1)];
+					for (int k=0; k<order; ++k)	
+					{	
+						if(formulation == "Mixed")
+						{	
+							us[i+j*spe] += h1s[k]*u[order*j+k];
+							Ps[i+j*spe] += l2s[k]*P[order*j+k];
+						} else
+						{	
+							Ps[i+j*spe] += h1s[k]*P[order*j+(k-1)];
+							if(formulation == "Mimetic") us[i+j*spe] += l2s[k]*u[order*j+k];
+						}
+					}
+				}
+			} else
+			{
+				for (int i=0; i<spe; ++i)
+				{
+					xs[i+j*spe] = (len/(double)N_el)*(i*(1/(double)(spe-1)) + j);
+					VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+					VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+					for (int k=0; k<order+1; ++k)	
+					{		
+						if(formulation == "Mixed")
+						{	
+							us[i+j*spe] += h1s[k]*u[order*j+k];
+							if(k != order) Ps[i+j*spe] += l2s[k]*P[order*j+k];
+						} else
+						{	
+							Ps[i+j*spe] += h1s[k]*P[order*j+(k-1)];
+							if ( (formulation == "Mimetic") && (k!=order) )
+							{
+								us[i+j*spe] += l2s[k]*u[order*j+k];
+							}
+						}
+					}
+				}
+			}
+		}
+
+		output["xgrid"] = xs;
+		output["Pgrid"] = Ps;
+		output["ugrid"] = us;
+		outargs += 3;
+
+		std::ofstream outfile(argv[2]);
+		outfile << std::setw(outargs) << output << std::endl;
+
+		// If you want to run python plotting automatically from here
+		// /*
+		std::cout << std::endl;
+		std::cout << "Running python plotter ..." << std::endl;
+		std::string ifile = argv[1];
+		std::string ofile = argv[2];
+		std::string pyplot = "./plot/pyplot.py -i " + ifile + " -o " + ofile;
+		std::system(pyplot.c_str());
+		//*/
+	}
 
 	return 0;
 }
