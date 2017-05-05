@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import matplotlib as mpl
-mpl.use('Cairo')
+#mpl.use('Cairo')
 import matplotlib.pyplot as plt
 import numpy as np
 import sys, getopt
@@ -41,7 +41,13 @@ def main(argv):
 	goldx = np.arange(params["Mesh"]["x_min"],params["Mesh"]["x_max"]+0.001, 0.001)
 	function = params["Function"]
 	formulation = params["Formulation"]
-	order = params["Order"]
+	if formulation == "Mimetic":
+		formulation = "Dual-Mixed"
+	orderP = params["Order"]
+	orderu = int(orderP) - 1
+	if formulation == "Mixed":
+		orderu = orderP
+		orderP = orderu - 1
 	elems = int(params["Mesh"]["N"]) + 1
 	filetype = params["Plot"]["Filetype"]
 	if function == "ExpX3pX":
@@ -56,31 +62,35 @@ def main(argv):
 	# Create output plots
 	plt.rc('text', usetex=True)
 	plt.rc('font', family='serif')
+	mpl.rc('xtick', labelsize=12)
+	mpl.rc('ytick', labelsize=12)
 
-	plt.figure(1)
+	plt.figure(1, figsize=(5,5))
 	plt.plot(goldx, goldP, 'k')
 	plt.plot(output["xgrid"],output["Pgrid"],'b.')
-	plt.xlabel(r'Position')
-	plt.ylabel(r'P value')
-	t1 = (r'P vs Position, ')
-	t2 = (', \n formulation: ') 
-	t3 = (r', order: ')
-	t4 = (r', elements: ')
-	plt.title("%s %s%s%s%s%s%s%s" % (t1,f,t2,formulation,t3,order,t4,elems))
+	plt.xlabel(r'Position', fontsize=14)
+	plt.ylabel(r'$p$ value', fontsize=14)
+	t1 = (r'$p$ vs $x$, ')
+	t2 = (', Formulation: ') 
+	t3 = ('\n Poly. degree: ')
+	t4 = (r', Elements: ')
+	plt.title("%s %s%s%s%s%s" % (t1,f,t3,orderP,t4,elems), fontsize=16)
 	plt.grid(True)
 	plt.axis([params["Mesh"]["x_min"],params["Mesh"]["x_max"],0,0.5])
+	plt.tight_layout()
 	plt.savefig("%s%s" % ("./plot/P.",filetype))
 
 	if formulation != "Standard":
-		plt.figure(2)
+		plt.figure(2, figsize=(5,5))
 		plt.plot(goldx, goldu, 'k')
 		plt.plot(output["xgrid"],output["ugrid"],'r.')
-		t1 = (r'u vs Position, ')
-		plt.xlabel(r'Position')
-		plt.ylabel(r'u value')
-		plt.title("%s %s%s%s%s%s%s%s" % (t1,f,t2,formulation,t3,order,t4,elems))
+		t1 = (r'$u$ vs $x$, ')
+		plt.xlabel(r'Position', fontsize=14)
+		plt.ylabel(r'$u$ value', fontsize=14)
+		plt.title("%s %s%s%s%s%s" % (t1,f,t3,orderu,t4,elems), fontsize=16)
 		plt.grid(True)
 		plt.axis([params["Mesh"]["x_min"],params["Mesh"]["x_max"],-1,2.8])
+		plt.tight_layout()
 		plt.savefig("%s%s" % ("./plot/u.",filetype))
 
 
