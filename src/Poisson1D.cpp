@@ -60,8 +60,8 @@ int main(int argc, char const *argv[])
 		system.reserve(VectorXi::Constant(N_el*order - 1, 2*order + 1));
 		system.setZero();
 		rhs.setZero();
-		MatrixXd minimatrix = integrate.laplace(h1, h1, mesh.getLinearTransform(0));
-		VectorXd minirhs = integrate.force(force, h1, mesh.getLinearTransform(0));
+		MatrixXd minimatrix = integrate.laplace(h1, h1, mesh.getTransform(0));
+		VectorXd minirhs = integrate.force(force, h1, mesh.getTransform(0));
 		for (int j = 1; j <= order; ++j)
 		{
 			rhs[j-1] += minirhs[j];
@@ -72,8 +72,8 @@ int main(int argc, char const *argv[])
 		}
 		for (int n = 1; n < N_el - 1; ++n)
 		{
-			minimatrix = integrate.laplace(h1, h1, mesh.getLinearTransform(n));
-			minirhs = integrate.force(force, h1, mesh.getLinearTransform(n));
+			minimatrix = integrate.laplace(h1, h1, mesh.getTransform(n));
+			minirhs = integrate.force(force, h1, mesh.getTransform(n));
 			for (int j = 0; j <= order; ++j)
 			{
 				rhs[n*order+j-1] += minirhs[j];
@@ -83,8 +83,8 @@ int main(int argc, char const *argv[])
 				}
 			}
 		}
-		minimatrix = integrate.laplace(h1, h1, mesh.getLinearTransform(N_el - 1));
-		minirhs = integrate.force(force, h1, mesh.getLinearTransform(N_el - 1));
+		minimatrix = integrate.laplace(h1, h1, mesh.getTransform(N_el - 1));
+		minirhs = integrate.force(force, h1, mesh.getTransform(N_el - 1));
 		for (int j = 0; j < order; ++j)
 		{
 			rhs[(N_el-1)*order+j-1] += minirhs[j];
@@ -113,8 +113,8 @@ int main(int argc, char const *argv[])
 		rhs.setZero();
 		for (int n = 0; n < N_el; ++n)
 		{
-			MatrixXd mini_h1_mass = integrate.mass(h1, h1, mesh.getLinearTransform(n));
-			MatrixXd mini_div = integrate.grad(h1, l2, mesh.getLinearTransform(n));
+			MatrixXd mini_h1_mass = integrate.mass(h1, h1, mesh.getTransform(n));
+			MatrixXd mini_div = integrate.grad(h1, l2, mesh.getTransform(n));
 			for (int j = 0; j <= order; ++j)
 			{
 				for (int i = 0; i <= order; ++i)
@@ -126,7 +126,7 @@ int main(int argc, char const *argv[])
 					system.coeffRef((N_el+n)*order+i+1, n*order+j) += mini_div(i, j);
 				}
 			}
-			VectorXd minirhs = integrate.force(force, l2, mesh.getLinearTransform(n));
+			VectorXd minirhs = integrate.force(force, l2, mesh.getTransform(n));
 			for (int i = 0; i < order; ++i)
 			{
 				rhs[(N_el+n)*order+i+1] = minirhs[i];
@@ -155,7 +155,7 @@ int main(int argc, char const *argv[])
 		rhs.setZero();
 		for (int n = 0; n < N_el; ++n)
 		{
-			MatrixXd mini_l2_mass = integrate.mass(l2, l2, mesh.getLinearTransform(n));
+			MatrixXd mini_l2_mass = integrate.mass(l2, l2, mesh.getTransform(n));
 			for (int j = 0; j < order; ++j)
 			{
 				for (int i = 0; i < order; ++i)
@@ -164,8 +164,8 @@ int main(int argc, char const *argv[])
 				}
 			}
 		}
-		MatrixXd mini_grad = integrate.grad(h1, l2, mesh.getLinearTransform(0));
-		VectorXd minirhs = integrate.force(force, h1, mesh.getLinearTransform(0));
+		MatrixXd mini_grad = integrate.grad(h1, l2, mesh.getTransform(0));
+		VectorXd minirhs = integrate.force(force, h1, mesh.getTransform(0));
 		for (int j = 1; j <= order; ++j)
 		{
 			rhs[N_el*order+j-1] -= minirhs[j];
@@ -176,8 +176,8 @@ int main(int argc, char const *argv[])
 		}
 		for (int n = 1; n < N_el - 1; ++n)
 		{
-			mini_grad = integrate.grad(h1, l2, mesh.getLinearTransform(n));
-			minirhs = integrate.force(force, h1, mesh.getLinearTransform(n));
+			mini_grad = integrate.grad(h1, l2, mesh.getTransform(n));
+			minirhs = integrate.force(force, h1, mesh.getTransform(n));
 			for (int j = 0; j <= order; ++j)
 			{
 				rhs[(N_el+n)*order+j-1] -= minirhs[j];
@@ -187,8 +187,8 @@ int main(int argc, char const *argv[])
 				}
 			}
 		}
-		mini_grad = integrate.grad(h1, l2, mesh.getLinearTransform(N_el - 1));
-		minirhs = integrate.force(force, h1, mesh.getLinearTransform(N_el - 1));
+		mini_grad = integrate.grad(h1, l2, mesh.getTransform(N_el - 1));
+		minirhs = integrate.force(force, h1, mesh.getTransform(N_el - 1));
 		for (int j = 0; j < order; ++j)
 		{
 			rhs[(2*N_el-1)*order+j-1] -= minirhs[j];
@@ -228,20 +228,20 @@ int main(int argc, char const *argv[])
 		VectorXd segment(order + 1);
 		segment[0] = 0.0;
 		segment.tail(order) = x.segment(0, order);
-		error += integrate.error(force, h1, segment, mesh.getLinearTransform(0));
+		error += integrate.error(force, h1, segment, mesh.getTransform(0));
 		for (int n = 1; n < N_el - 1; ++n)
 		{
-			error += integrate.error(force, h1, x.segment(n*order - 1, order + 1), mesh.getLinearTransform(n));
+			error += integrate.error(force, h1, x.segment(n*order - 1, order + 1), mesh.getTransform(n));
 		}
 		segment.head(order) = x.segment((N_el-1)*order-1, order);
 		segment[order] = 0.0;
-		error += integrate.error(force, h1, segment, mesh.getLinearTransform(N_el-1));
+		error += integrate.error(force, h1, segment, mesh.getTransform(N_el-1));
 	}
 	else if(formulation == "Mixed")
 	{
 		for (int n = 0; n < N_el; ++n)
 		{
-			error += integrate.error(force, l2, x.segment((N_el+n)*order+1, order), mesh.getLinearTransform(n));
+			error += integrate.error(force, l2, x.segment((N_el+n)*order+1, order), mesh.getTransform(n));
 		}
 	}
 	else if (formulation == "Mimetic")
@@ -249,14 +249,14 @@ int main(int argc, char const *argv[])
 		VectorXd segment(order + 1);
 		segment[0] = 0.0;
 		segment.tail(order) = x.segment(N_el*order, order);
-		error += integrate.error(force, h1, segment, mesh.getLinearTransform(0));
+		error += integrate.error(force, h1, segment, mesh.getTransform(0));
 		for (int n = 1; n < N_el - 1; ++n)
 		{
-			error += integrate.error(force, h1, x.segment((N_el+n)*order-1, order + 1), mesh.getLinearTransform(n));
+			error += integrate.error(force, h1, x.segment((N_el+n)*order-1, order + 1), mesh.getTransform(n));
 		}
 		segment.head(order) = x.segment((2*N_el-1)*order-1, order);
 		segment[order] = 0.0;
-		error += integrate.error(force, h1, segment, mesh.getLinearTransform(N_el-1));
+		error += integrate.error(force, h1, segment, mesh.getTransform(N_el-1));
 	}
 
 	error = sqrt(error);
@@ -275,17 +275,17 @@ int main(int argc, char const *argv[])
 	// }
 	// // v[N_el*order] = 0.0;
 
-	// std::cout << integrate.mass(l2, l2, mesh.getLinearTransform(0)) << std::endl;
+	// std::cout << integrate.mass(l2, l2, mesh.getTransform(0)) << std::endl;
 	// std::cout << std::endl;
-	// std::cout << integrate.grad(l2, h1, mesh.getLinearTransform(0)) << std::endl;
+	// std::cout << integrate.grad(l2, h1, mesh.getTransform(0)) << std::endl;
 	// std::cout << std::endl;
-	// std::cout << integrate.force(force, h1, mesh.getLinearTransform(0)) << std::endl;
+	// std::cout << integrate.force(force, h1, mesh.getTransform(0)) << std::endl;
 	// std::cout << std::endl;
-	// std::cout << integrate.mass(h1, h1, mesh.getLinearTransform(0)) << std::endl;
+	// std::cout << integrate.mass(h1, h1, mesh.getTransform(0)) << std::endl;
 	// std::cout << std::endl;
-	// std::cout << integrate.grad(h1,l2, mesh.getLinearTransform(0)) << std::endl;
+	// std::cout << integrate.grad(h1,l2, mesh.getTransform(0)) << std::endl;
 	// std::cout << std::endl;
-	// std::cout << integrate.force(force, l2, mesh.getLinearTransform(0)) << std::endl;
+	// std::cout << integrate.force(force, l2, mesh.getTransform(0)) << std::endl;
 
 	output["x"] = mesh.nodes();
 	output["error"] = error;
