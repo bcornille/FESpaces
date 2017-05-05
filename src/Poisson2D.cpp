@@ -3,6 +3,7 @@
 #include <fstream>
 #include "Integrators.hpp"
 #include "ForcingFunctions.hpp"
+#include "Eigen/Eigenvalues"
 
 int main(int argc, char const *argv[])
 {
@@ -44,6 +45,10 @@ int main(int argc, char const *argv[])
 	// std::cout << std::endl;
 	// std::cout << integrate.grad(l2, hdiv, t) << std::endl;
 	// std::cout << std::endl;
+	// std::cout << integrate.mass(hdiv, hdiv, t).eigenvalues() << std::endl;
+	// std::cout << std::endl;
+	// std::cout << integrate.grad(l2, hdiv, t).jacobiSvd().singularValues() << std::endl;
+	// std::cout << std::endl;
 	// std::cout << integrate.div(hdiv, l2, t) << std::endl;
 	// td::cout << std::endl;
 	// std::cout << integrate.mass(hcurl, hcurl, t) << std::endl;
@@ -53,9 +58,9 @@ int main(int argc, char const *argv[])
 	// std::cout << (integrate.mass(hcurl, hcurl, t).partialPivLu()
 	// 	.solve(integrate.grad(h1, hcurl, t))) << std::endl;
 	// std::cout << std::endl;
-	std::cout << integrate.force(force, h1, t) << std::endl;
-	std::cout << std::endl;
-	std::cout << integrate.force(force, l2, t) << std::endl;
+	// std::cout << integrate.force(force, h1, t) << std::endl;
+	// std::cout << std::endl;
+	// std::cout << integrate.force(force, l2, t) << std::endl;
 
 	return 0;
 }
