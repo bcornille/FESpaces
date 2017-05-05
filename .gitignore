@@ -1,3 +1,9 @@
+## Eigen link
+Eigen
+
+## Sublime stuff
+*.sublime*
+
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
