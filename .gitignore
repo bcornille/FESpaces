@@ -1,3 +1,6 @@
+## Eigen link
+Eigen
+
 ## Sublime stuff
 *.sublime*
 
@@ -182,3 +185,8 @@ TSWLatexianTemp*
 # KBibTeX
 *~[0-9]*
 
+# Other
+src/plot/*.png
+src/plot/*.svg
+src/plot/*.pdf
+src/Eigen
