@@ -30,14 +30,14 @@ int main(int argc, char const *argv[])
 	int order = (int)input["Order"];
 	int N_el = (int)input["Mesh"]["N"] + 1;
 	int size = 0;
-	H1_1D h1(order);
-	L2_1D l2(order);
-	std::shared_ptr<Force1D> force;
+	H1_1D h1(order); // H^1 reference element.
+	L2_1D l2(order); // L^2 reference element.
+	std::shared_ptr<Force1D> force; //Forcing function class pointer.
 	SparseMatrix<double> system;
 	VectorXd rhs;
-	// SimplicialLLT<SparseMatrix<double> > solver;
 	SparseLU<SparseMatrix<double> > solver;
 
+	// Set the forcing function.
 	std::string force_type = input["Function"];
 	if (force_type == "Two")
 	{
@@ -53,6 +53,7 @@ int main(int argc, char const *argv[])
 		return 2;
 	}
 
+	// Assemble the system of equations.
 	std::string formulation = input["Formulation"];
 	if (formulation == "Standard")
 	{
@@ -138,6 +139,7 @@ int main(int argc, char const *argv[])
 		}
 		SparseMatrix<double> identity(2*N_el*order + 1, 2*N_el*order + 1);
 		identity.setIdentity();
+		//Use symmetric view to populate upper half of the matrix.
 		system = system.selfadjointView<Lower>()*identity;
 	}
 	else if (formulation == "Mimetic")
@@ -204,6 +206,7 @@ int main(int argc, char const *argv[])
 		}
 		SparseMatrix<double> identity(2*N_el*order - 1, 2*N_el*order - 1);
 		identity.setIdentity();
+		//Use symmetric view to populate lower half of the matrix.
 		system = system.selfadjointView<Upper>()*identity;
 	}
 	else
@@ -212,21 +215,14 @@ int main(int argc, char const *argv[])
 		return 3;
 	}
 
-
 	system.makeCompressed();
-
-	// std::cout << system << std::endl;
-	// std::cout << rhs << std::endl;
-	// std::cout << std::endl;
 
 	solver.analyzePattern(system);
 	solver.factorize(system);
-	// std::cout << solver.determinant() << std::endl;
-	// std::cout << std::endl;
+
 	VectorXd x = solver.solve(rhs);
 
-	// std::cout << x << std::endl;
-
+	// Calculate square of the error in solution using the integrator.
 	double error = 0.0;
 	if (formulation == "Standard")
 	{
@@ -264,33 +260,9 @@ int main(int argc, char const *argv[])
 		error += integrate.error(force, h1, segment, mesh.getTransform(N_el-1));
 	}
 
-	error = sqrt(error);
+	error = sqrt(error); // Get L^2 error from its square.
 
-	// std::cout << std::endl;
 	std::cout << "Solution error: " << error << std::endl;
-
-	// // std::vector<double> v(N_el*order + 1);
-	// std::vector<double> v(N_el*order);
-	// // v[0] = 0.0;
-	// v[0] = x[N_el*order-2];
-	// for (int i = 1; i < N_el*order; ++i)
-	// {
-	// 	// v[i] = x[i-1];
-	// 	v[i] = x[N_el*order+i-2];
-	// }
-	// // v[N_el*order] = 0.0;
-
-	// std::cout << integrate.mass(l2, l2, mesh.getTransform(0)) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.grad(l2, h1, mesh.getTransform(0)) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.force(force, h1, mesh.getTransform(0)) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.mass(h1, h1, mesh.getTransform(0)) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.grad(h1,l2, mesh.getTransform(0)) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.force(force, l2, mesh.getTransform(0)) << std::endl;
 
 	output["x"] = mesh.nodes();
 	output["error"] = error;
@@ -318,12 +290,12 @@ int main(int argc, char const *argv[])
 	}	
 	output["u"] = u;
 	output["P"] = P;
-	int outargs = 4;
 
+	// Plotting and output.
 	if (input["Plot"]["Enable"] != "On")
 	{
 		std::ofstream outfile(argv[2]);
-		outfile << std::setw(outargs) << output << std::endl;
+		outfile << std::setw(4) << output << std::endl;
 	} else
 	{
 		// Set up from grids for plotting output
@@ -417,10 +389,9 @@ int main(int argc, char const *argv[])
 		output["xgrid"] = xs;
 		output["Pgrid"] = Ps;
 		output["ugrid"] = us;
-		outargs += 3;
 
 		std::ofstream outfile(argv[2]);
-		outfile << std::setw(outargs) << output << std::endl;
+		outfile << std::setw(4) << output << std::endl;
 
 		// If you want to run python plotting automatically from here
 		// /*
