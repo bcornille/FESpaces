@@ -9,12 +9,14 @@
 
 using namespace nlohmann;
 
+/**
+ * @brief      Class for one dimensional mesh. Can include some curvature.
+ */
 class Mesh1D
 {
 	public:
 		Mesh1D(json params);
 		~Mesh1D() = default;
-		// Transform1D_Linear getLinearTransform(int i);
 		Transform1D getTransform(int i);
 		std::vector<double> nodes();
 	private:
@@ -24,6 +26,14 @@ class Mesh1D
 		std::vector<RowVectorXd> inner_nodes;
 };
 
+/**
+ * @brief      Constructs the object. Produces `"N" + 1` elements. This mesh is
+ *             distorted by the mapping from $\xi \in [-1, 1]$ to $1 + \xi +
+ *             c\sin(\pi \xi)$.
+ *
+ * @param[in]  params  The parameters of "Mesh". Required to have fields
+ *                     "x_min", "x_max", "N", "c", and "map_order".
+ */
 Mesh1D::Mesh1D(nlohmann::json params) :
 	N_node((int)params["N"]), N_segments((int)params["N"] + 1),
 	x((int)params["N"] + 2), inner_nodes((int)params["N"] + 1)
@@ -52,16 +62,23 @@ Mesh1D::Mesh1D(nlohmann::json params) :
 	}
 }
 
-// Transform1D_Linear Mesh1D::getLinearTransform(int i)
-// {
-// 	return Transform1D_Linear(x[i], x[i+1]);
-// }
-
+/**
+ * @brief      Gets the one dimensional transform for a desired element.
+ *
+ * @param[in]  i     Element index.
+ *
+ * @return     The transform.
+ */
 Transform1D Mesh1D::getTransform(int i)
 {
 	return Transform1D(inner_nodes[i]);
 }
 
+/**
+ * @brief      Gets the set of "nodes" for the mesh.
+ *
+ * @return     The nodes.
+ */
 inline std::vector<double> Mesh1D::nodes()
 {
 	return x;

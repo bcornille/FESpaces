@@ -7,22 +7,42 @@
 
 using namespace Eigen;
 
+/**
+ * @brief      Gives the value of pi. constexpr means it is evaluated at compile
+ *             time.
+ *
+ * @return     pi = std::atan(1)*4
+ */
 constexpr double pi() { return std::atan(1)*4; }
 
+/**
+ * @brief      Class for developing polynomial bases in 1D. Provides functions
+ *             for evaluating the Legendre polynomials, which can be used to
+ *             construct other bases.
+ */
 class Basis1D
 {
 	public:
 		Basis1D() = default;
 		virtual ~Basis1D() = default;
 	protected:
-		// double evalLeg(double x, int n);
-		// double evalLegD(double x, int n);
 		RowVector2d evalLegLegD(double x, int n);
 		Vector2d evalLegm1Leg(double x, int n);
 		VectorXd evalLegendre(double x, int n);
 		MatrixX2d evalLegendreD(double x, int n);
 };
 
+/**
+ * @brief      Evaluate the Legendre polynomials and their derivatives up to a
+ *             certain degree.
+ *
+ * @param[in]  x     Coordinate value `-1 < x < 1`.
+ * @param[in]  n     Order of highest Legendre polynomial.
+ *
+ * @return    `n+1`-by-`2` matrix with the first column holding the values of the
+ *             Legendre polynomials and the second column holding the valuse of
+ *             the derivatives of the Legendre polynomials.
+ */
 inline MatrixX2d Basis1D::evalLegendreD(double x, int n)
 {
 	MatrixX2d p(n + 1, 2);
@@ -39,31 +59,52 @@ inline MatrixX2d Basis1D::evalLegendreD(double x, int n)
 	return p;
 }
 
+/**
+ * @brief      Evaluate the Legendre polynomials up to a certain degree.
+ *
+ * @param[in]  x     Coordinate value `-1 < x < 1`.
+ * @param[in]  n     Order of highest Legendre polynomial.
+ *
+ * @return     Vector of length `n+1` holding the values of the Legendre
+ *             polynomials.
+ */
 inline VectorXd Basis1D::evalLegendre(double x, int n)
 {
 	return evalLegendreD(x, n).leftCols<1>();
 }
 
+/**
+ * @brief      Evaluate a Legendre polynomial of a certain degre and degree
+ *             minus 1.
+ *
+ * @param[in]  x     Coordinate value `-1 < x < 1`.
+ * @param[in]  n     Order of highest Legendre polynomial.
+ *
+ * @return     Vector of length `2` containing the two values.
+ */
 inline Vector2d Basis1D::evalLegm1Leg(double x, int n)
 {
 	return evalLegendreD(x, n).bottomLeftCorner<2,1>();
 }
 
+/**
+ * @brief      Evaluate a Legendre polynomial of a certain degree and its
+ *             derivative.
+ *
+ * @param[in]  x     Coordinate value `-1 < x < 1`.
+ * @param[in]  n     Order of Legendre polynomial.
+ *
+ * @return     Row vector of length `2` containing the two values.
+ */
 inline RowVector2d Basis1D::evalLegLegD(double x, int n)
 {
 	return evalLegendreD(x, n).bottomRows<1>();
 }
 
-// inline double Basis1D::evalLeg(double x, int n)
-// {
-// 	return evalLegendreD(x, n)(n,0);
-// }
-
-// inline double Basis1D::evalLegD(double x, int n)
-// {
-// 	return evalLegendreD(x, n)(n,1);
-// }
-
+/**
+ * @brief      Class for the Lagrange cardinal basis at the Gauss-Legendre (GL)
+ *             points.
+ */
 class GaussLegendre : public Basis1D
 {
 	public:
@@ -80,6 +121,17 @@ class GaussLegendre : public Basis1D
 		VectorXd node, weight;
 };
 
+/**
+ * @brief      Constructs the object. During construction the GL nodes and
+ *             weights are calculated. The values of the Legendre polynomials up
+ *             to degree `k - 1` at each node are also stored in a matrix. To
+ *             evaluate the cardinal functions, this matrix is inverted on the
+ *             vector containing the evalutation of the Legendre polynomials at
+ *             the desired point.
+ *
+ * @param[in]  k     The number of GL points to use.
+ * @param[in]  eps   The required accuracy of the GL points.
+ */
 GaussLegendre::GaussLegendre(int k, double eps) :
 	n_nodes(k), leg2lag(k,k), lu(k), node(k), weight(k)
 {
@@ -107,26 +159,58 @@ GaussLegendre::GaussLegendre(int k, double eps) :
 	lu.compute(leg2lag);
 }
 
+/**
+ * @brief      Evaluates the Lagrange GL cardinal fuctions and their derivatives
+ *             at a desired location.
+ *
+ * @param[in]  x     Coordinate value `-1 < x < 1`.
+ *
+ * @return     `k`-by-`2` matrix of the cardinal function values and their
+ *             derivatives.
+ */
 inline MatrixX2d GaussLegendre::evalGL(double x)
 {
 	return lu.solve(evalLegendreD(x, n_nodes - 1));
 }
 
+/**
+ * @brief      Gets the node.
+ *
+ * @param[in]  i     Index of desired node.
+ *
+ * @return     The node location.
+ */
 inline double GaussLegendre::getNode(int i)
 {
 	return node[i];
 }
 
+/**
+ * @brief      Gets the weight.
+ *
+ * @param[in]  i     Index of desired node.
+ *
+ * @return     The weight.
+ */
 inline double GaussLegendre::getWeight(int i)
 {
 	return weight[i];
 }
 
+/**
+ * @brief      Gets the number of nodes.
+ *
+ * @return     The number of nodes.
+ */
 inline int GaussLegendre::getN()
 {
 	return n_nodes;
 }
 
+/**
+ * @brief      Class for the Lagrange cardinal basis at the
+ *             Gauss-Legendre-Lobatto (GLL) points.
+ */
 class GaussLobatto : public Basis1D
 {
 	public:
@@ -143,6 +227,17 @@ class GaussLobatto : public Basis1D
 		VectorXd node, weight;
 };
 
+/**
+ * @brief      Constructs the object. During construction the GLL nodes and
+ *             weights are calculated. The values of the Legendre polynomials up
+ *             to degree `k - 1` at each node are also stored in a matrix. To
+ *             evaluate the cardinal functions, this matrix is inverted on the
+ *             vector containing the evalutation of the Legendre polynomials at
+ *             the desired point.
+ *
+ * @param[in]  k     The number of GLL points to use.
+ * @param[in]  eps   The required accuracy of the GLL points.
+ */
 GaussLobatto::GaussLobatto(int k, double eps) :
 	n_nodes(k), leg2lag(k,k), lu(k), node(k), weight(k)
 {
@@ -177,21 +272,49 @@ GaussLobatto::GaussLobatto(int k, double eps) :
 	lu.compute(leg2lag);
 }
 
+/**
+ * @brief      Evaluates the Lagrange GLL cardinal fuctions and their
+ *             derivatives at a desired location.
+ *
+ * @param[in]  x     Coordinate value `-1 < x < 1`.
+ *
+ * @return     `k`-by-`2` matrix of the cardinal function values and their
+ *             derivatives.
+ */
 inline MatrixX2d GaussLobatto::evalGLL(double x)
 {
 	return lu.solve(evalLegendreD(x, n_nodes - 1));
 }
 
+/**
+ * @brief      Gets the node.
+ *
+ * @param[in]  i     Index of desired node.
+ *
+ * @return     The node.
+ */
 inline double GaussLobatto::getNode(int i)
 {
 	return node[i];
 }
 
+/**
+ * @brief      Gets the weight.
+ *
+ * @param[in]  i     Index of desire node
+ *
+ * @return     The weight.
+ */
 inline double GaussLobatto::getWeight(int i)
 {
 	return weight[i];
 }
 
+/**
+ * @brief      Gets the number of nodes.
+ *
+ * @return     The number of nodes.
+ */
 inline int GaussLobatto::getN()
 {
 	return n_nodes;
