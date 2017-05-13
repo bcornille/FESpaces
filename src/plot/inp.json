@@ -1,7 +1,12 @@
 {
 	"Converge" : {
 		"p_min" : 1,
-		"p_max" : 10
+		"p_max" : 10,
+		"h_min" : 1,
+		"h_max" : 7,
+		"p_minh" : 1,
+		"p_maxh" : 7,
+		"curve" : 0.20
 	},
 	"Mesh" : {
 		"x_min" : 0.0,
