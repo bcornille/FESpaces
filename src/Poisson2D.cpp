@@ -4,6 +4,7 @@
 #include "Integrators.hpp"
 #include "ForcingFunctions.hpp"
 #include "Eigen/Eigenvalues"
+#include "Mesh2D.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -19,13 +20,14 @@ int main(int argc, char const *argv[])
 	std::ifstream infile(argv[1]);
 	infile >> input;
 
+	Mesh2D mesh(input["Mesh"]);
 	Integrator2D integrate(input["Integrator"]);
-	int order = (int)input["Order"];
-	H1_2D h1(order);
-	HDiv_2D hdiv(order);
-	L2_2D l2(order);
-	HCurl_2D hcurl(order);
-	Transform2D t(Eigen::Vector2d::Constant(0.0), Eigen::Vector2d::Constant(1.0));
+	// int order = (int)input["Order"];
+	// H1_2D h1(order);
+	// HDiv_2D hdiv(order);
+	// L2_2D l2(order);
+	// HCurl_2D hcurl(order);
+	// Transform2D t(Eigen::Vector2d::Constant(0.0), Eigen::Vector2d::Constant(1.0));
 	std::shared_ptr<Force2D> force;
 
 	std::string force_type = input["Function"];
