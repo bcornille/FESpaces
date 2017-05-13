@@ -1,4 +1,5 @@
 {
+  "Formulation" : "Standard",
   "Function" : "SinXSinY",
   "Integrator" : {
     "N" : 5
