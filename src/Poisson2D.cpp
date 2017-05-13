@@ -4,6 +4,7 @@
 #include "Integrators.hpp"
 #include "ForcingFunctions.hpp"
 #include "Eigen/Eigenvalues"
+#include "Mesh2D.hpp"
 
 int main(int argc, char const *argv[])
 {
@@ -19,14 +20,12 @@ int main(int argc, char const *argv[])
 	std::ifstream infile(argv[1]);
 	infile >> input;
 
+	Mesh2D mesh(input["Mesh"]);
 	Integrator2D integrate(input["Integrator"]);
-	int order = (int)input["Order"];
-	H1_2D h1(order);
-	HDiv_2D hdiv(order);
-	L2_2D l2(order);
-	HCurl_2D hcurl(order);
-	Transform2D t(Eigen::Vector2d::Constant(0.0), Eigen::Vector2d::Constant(1.0));
 	std::shared_ptr<Force2D> force;
+	SparseMatrix<double> system;
+	VectorXd rhs;
+	SparseLU<SparseMatrix<double> > solver;
 
 	std::string force_type = input["Function"];
 	if (force_type == "SinXSinY")
@@ -39,28 +38,50 @@ int main(int argc, char const *argv[])
 		return 2;
 	}
 
-	// std::cout << integrate.laplace(h1, h1, t) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.mass(hdiv, hdiv, t) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.grad(l2, hdiv, t) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.mass(hdiv, hdiv, t).eigenvalues() << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.grad(l2, hdiv, t).jacobiSvd().singularValues() << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.div(hdiv, l2, t) << std::endl;
-	// td::cout << std::endl;
-	// std::cout << integrate.mass(hcurl, hcurl, t) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.grad(h1, hcurl, t) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << (integrate.mass(hcurl, hcurl, t).partialPivLu()
-	// 	.solve(integrate.grad(h1, hcurl, t))) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.force(force, h1, t) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.force(force, l2, t) << std::endl;
+	std::string formulation = input["Formulation"];
+	if (formulation == "Standard")
+	{
+		system = mesh.assembleStandard(integrate);
+		rhs = mesh.rhsStandard(integrate, force);
+	}
+	else if(formulation == "Mixed")
+	{
+		system = mesh.assembleMixed(integrate);
+		rhs = mesh.rhsMixed(integrate, force);
+	}
+	else if(formulation == "Dual-Mixed")
+	{
+		system = mesh.assembleDualMixed(integrate);
+		rhs = mesh.rhsDualMixed(integrate, force);
+	}
+	else
+	{
+		std::cerr << "Unknown formulation." << std::endl;
+		return 3;
+	}
+
+	solver.analyzePattern(system);
+	solver.factorize(system);
+	VectorXd x = solver.solve(rhs);
+
+	// std::cout << x << std::endl;
+
+	double error;
+	if (formulation == "Standard")
+	{
+		error = mesh.errorStandard(integrate, force, x);
+	}
+	else if(formulation == "Mixed")
+	{
+		error = mesh.errorMixed(integrate, force, x);
+	}
+	else if(formulation == "Dual-Mixed")
+	{
+		error = mesh.errorDualMixed(integrate, force, x);
+	}
+
+	error = sqrt(error);
+	std::cout << error << std::endl;
 
 	return 0;
 }
