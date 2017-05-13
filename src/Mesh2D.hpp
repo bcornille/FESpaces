@@ -16,6 +16,8 @@ class Mesh2D
 		Transform2D getTransform(int k);
 		SparseMatrix<double> assembleStandard(Integrator2D integrator);
 		VectorXd rhsStandard(Integrator2D integrator, const std::shared_ptr<Force2D>& f);
+		SparseMatrix<double> assembleMixed(Integrator2D integrator);
+		VectorXd rhsMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f);
 	private:
 		const int N_x_el;
 		const int N_y_el;
@@ -321,7 +323,7 @@ std::vector<Vector2i> Mesh2D::l2_dofs_setup(int i, int j)
 		for (int i_loc = 0; i_loc < p; ++i_loc)
 		{
 			l2_temp[j_loc*p+i_loc][0] = N_l2_dofs++;
-			l2_temp[j_loc*p+i_loc][0] = j_loc*p+i_loc;
+			l2_temp[j_loc*p+i_loc][1] = j_loc*p+i_loc;
 		}
 	}
 	return l2_temp;
@@ -362,6 +364,49 @@ VectorXd Mesh2D::rhsStandard(Integrator2D integrator, const std::shared_ptr<Forc
 		for (Vector2i& dof_i : h1_dofs[k])
 		{
 			rhs[dof_i[0]] += minirhs[dof_i[1]];
+		}
+	}
+	return rhs;
+}
+
+SparseMatrix<double> Mesh2D::assembleMixed(Integrator2D integrator)
+{
+	SparseMatrix<double> matrix(N_hdiv_dofs + N_l2_dofs, N_hdiv_dofs + N_l2_dofs);
+	matrix.reserve(VectorXi::Constant(N_hdiv_dofs + N_l2_dofs, 3*p*(2*p + 1)));
+	matrix.setZero();
+	for (int k = 0; k < N_el; ++k)
+	{
+		MatrixXd mini_hdiv_mass = integrator.mass(hdiv_el, hdiv_el, getTransform(k));
+		MatrixXd mini_div = integrator.div(hdiv_el, l2_el, getTransform(k));
+		for (Vector2i& dof_j : hdiv_dofs[k])
+		{
+			for(Vector2i& dof_i : hdiv_dofs[k])
+			{
+				matrix.coeffRef(dof_i[0], dof_j[0]) -= mini_hdiv_mass(dof_i[1], dof_j[1]);
+			}
+			for(Vector2i& dof_i : l2_dofs[k])
+			{
+				matrix.coeffRef(N_hdiv_dofs + dof_i[0], dof_j[0]) += mini_div(dof_i[1], dof_j[1]);
+			}
+		}
+	}
+	SparseMatrix<double> identity(N_hdiv_dofs + N_l2_dofs, N_hdiv_dofs + N_l2_dofs);
+	identity.setIdentity();
+	matrix = matrix.selfadjointView<Lower>()*identity;
+	matrix.makeCompressed();
+	return matrix;
+}
+
+VectorXd Mesh2D::rhsMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f)
+{
+	VectorXd rhs(N_hdiv_dofs + N_l2_dofs);
+	rhs.setZero();
+	for (int k = 0; k < N_el; ++k)
+	{
+		VectorXd minirhs = integrator.force(f, l2_el, getTransform(k));
+		for (Vector2i& dof_i : l2_dofs[k])
+		{
+			rhs[N_hdiv_dofs+dof_i[0]] += minirhs[dof_i[1]];
 		}
 	}
 	return rhs;
