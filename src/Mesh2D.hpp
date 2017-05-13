@@ -33,6 +33,7 @@ class Mesh2D
 		std::vector<Vector2i> h1_dofs_setup(int i, int j);
 		std::vector<Vector2i> hcurl_dofs_setup(int i, int j);
 		std::vector<Vector2i> hdiv_dofs_setup(int i, int j);
+		std::vector<Vector2i> l2_dofs_setup(int i, int j);
 };
 
 Mesh2D::Mesh2D(json params) :
@@ -66,6 +67,7 @@ Mesh2D::Mesh2D(json params) :
 			h1_dofs[k] = h1_dofs_setup(i, j);
 			hcurl_dofs[k] = hcurl_dofs_setup(i, j);
 			hdiv_dofs[k] = hdiv_dofs_setup(i, j);
+			l2_dofs[k] = l2_dofs_setup(i, j);
 			Transform1D x_segment(-1.0 + i*delta_xi, -1.0 + (i + 1)*delta_xi);
 			Transform1D y_segment(-1.0 + j*delta_eta, -1.0 + (j + 1)*delta_eta);
 			for (int j_loc = 0; j_loc < N_map; ++j_loc)
@@ -302,6 +304,21 @@ std::vector<Vector2i> Mesh2D::hdiv_dofs_setup(int i, int j)
 		}
 	}
 	return hdiv_temp;
+}
+
+std::vector<Vector2i> Mesh2D::l2_dofs_setup(int i, int j)
+{
+	std::vector<Vector2i> l2_temp;
+	l2_temp.resize(p*p);
+	for (int j_loc = 0; j_loc < p; ++j_loc)
+	{
+		for (int i_loc = 0; i_loc < p; ++i_loc)
+		{
+			l2_temp[j_loc*p+i_loc][0] = N_l2_dofs++;
+			l2_temp[j_loc*p+i_loc][0] = j_loc*p+i_loc;
+		}
+	}
+	return l2_temp;
 }
 
 Transform2D Mesh2D::getTransform(int k)
