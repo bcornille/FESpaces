@@ -346,7 +346,7 @@ SparseMatrix<double> Mesh2D::assembleStandard(Integrator2D integrator)
 		MatrixXd minimatrix = integrator.laplace(h1_el, h1_el, getTransform(k));
 		for (Vector2i& dof_j : h1_dofs[k])
 		{
-			for(Vector2i& dof_i : h1_dofs[k])
+			for (Vector2i& dof_i : h1_dofs[k])
 			{
 				matrix.coeffRef(dof_i[0], dof_j[0]) += minimatrix(dof_i[1], dof_j[1]);
 			}
@@ -382,11 +382,11 @@ SparseMatrix<double> Mesh2D::assembleMixed(Integrator2D integrator)
 		MatrixXd mini_div = integrator.div(hdiv_el, l2_el, getTransform(k));
 		for (Vector2i& dof_j : hdiv_dofs[k])
 		{
-			for(Vector2i& dof_i : hdiv_dofs[k])
+			for (Vector2i& dof_i : hdiv_dofs[k])
 			{
 				matrix.coeffRef(dof_i[0], dof_j[0]) -= mini_hdiv_mass(dof_i[1], dof_j[1]);
 			}
-			for(Vector2i& dof_i : l2_dofs[k])
+			for (Vector2i& dof_i : l2_dofs[k])
 			{
 				matrix.coeffRef(N_hdiv_dofs + dof_i[0], dof_j[0]) += mini_div(dof_i[1], dof_j[1]);
 			}
@@ -425,11 +425,11 @@ SparseMatrix<double> Mesh2D::assembleDualMixed(Integrator2D integrator)
 		MatrixXd mini_div = integrator.div(hcurl_el, h1_el, getTransform(k));
 		for (Vector2i& dof_j : hcurl_dofs[k])
 		{
-			for(Vector2i& dof_i : hcurl_dofs[k])
+			for (Vector2i& dof_i : hcurl_dofs[k])
 			{
 				matrix.coeffRef(dof_i[0], dof_j[0]) += mini_hcurl_mass(dof_i[1], dof_j[1]);
 			}
-			for(Vector2i& dof_i : h1_dofs[k])
+			for (Vector2i& dof_i : h1_dofs[k])
 			{
 				matrix.coeffRef(N_hcurl_dofs + dof_i[0], dof_j[0]) += mini_div(dof_i[1], dof_j[1]);
 			}
