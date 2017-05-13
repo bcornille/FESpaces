@@ -22,6 +22,7 @@ int main(int argc, char const *argv[])
 
 	Mesh2D mesh(input["Mesh"]);
 	Integrator2D integrate(input["Integrator"]);
+	SparseMatrix<double> system = mesh.assembleStandard(integrate);
 	// int order = (int)input["Order"];
 	// H1_2D h1(order);
 	// HDiv_2D hdiv(order);
@@ -63,6 +64,8 @@ int main(int argc, char const *argv[])
 	// std::cout << integrate.force(force, h1, t) << std::endl;
 	// std::cout << std::endl;
 	// std::cout << integrate.force(force, l2, t) << std::endl;
+	// std::cout << std::endl;
+	std::cout << system << std::endl;
 
 	return 0;
 }

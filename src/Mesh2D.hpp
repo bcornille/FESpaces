@@ -1,10 +1,12 @@
 #include "json.hpp"
 #include "Integrators.hpp"
+#include "Eigen/Sparse"
 
 #ifndef _Mesh2D_hpp
 #define _Mesh2D_hpp
 
 using namespace nlohmann;
+using namespace Eigen;
 
 class Mesh2D
 {
@@ -12,11 +14,13 @@ class Mesh2D
 		Mesh2D(json params);
 		~Mesh2D() = default;
 		Transform2D getTransform(int k);
+		SparseMatrix<double> assembleStandard(Integrator2D integrator);
 	private:
 		const int N_x_el;
 		const int N_y_el;
 		const int N_el;
 		const int p;
+		const int p_map;
 		std::vector<Matrix2Xd> transform_nodes;
 		std::vector<std::vector<Vector2i> > h1_dofs;
 		std::vector<std::vector<Vector2i> > hcurl_dofs;
@@ -39,6 +43,7 @@ class Mesh2D
 Mesh2D::Mesh2D(json params) :
 	N_x_el((int)params["N_x"]), N_y_el((int)params["N_y"]),
 	N_el((int)params["N_x"]*(int)params["N_y"]), p((int)params["el_order"]),
+	p_map((int)params["map_order"]),
 	transform_nodes((int)params["N_x"]*(int)params["N_y"]),
 	h1_dofs((int)params["N_x"]*(int)params["N_y"]),
 	hcurl_dofs((int)params["N_x"]*(int)params["N_y"]),
@@ -52,7 +57,7 @@ Mesh2D::Mesh2D(json params) :
 	double delta_xi = 2.0/N_x_el;
 	double delta_eta = 2.0/N_y_el;
 	double c = (double)params["c"];
-	GaussLobatto gl((int)params["map_order"] + 1);
+	GaussLobatto gl(p_map + 1);
 	int N_map = gl.getN();
 	Matrix2Xd temp_nodes(2, N_map*N_map);
 	N_h1_dofs = 0;
@@ -323,7 +328,27 @@ std::vector<Vector2i> Mesh2D::l2_dofs_setup(int i, int j)
 
 Transform2D Mesh2D::getTransform(int k)
 {
-	return Transform2D(transform_nodes[k]);
+	return Transform2D(transform_nodes[k], p_map);
+}
+
+SparseMatrix<double> Mesh2D::assembleStandard(Integrator2D integrator)
+{
+	SparseMatrix<double> matrix(N_h1_dofs, N_h1_dofs);
+	matrix.reserve(VectorXi::Constant(N_h1_dofs, (2*p + 1)*(2*p + 1)));
+	matrix.setZero();
+	for (int k = 0; k < N_el; ++k)
+	{
+		MatrixXd minimatrix = integrator.laplace(h1_el, h1_el, getTransform(k));
+		for (Vector2i& dof_j : h1_dofs[k])
+		{
+			for(Vector2i& dof_i : h1_dofs[k])
+			{
+				matrix.coeffRef(dof_i[0], dof_j[0]) += minimatrix(dof_i[1], dof_j[1]);
+			}
+		}
+	}
+	matrix.makeCompressed();
+	return matrix;
 }
 
 #endif // _Mesh2D_hpp
