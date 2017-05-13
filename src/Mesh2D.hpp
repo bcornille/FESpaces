@@ -15,6 +15,7 @@ class Mesh2D
 		~Mesh2D() = default;
 		Transform2D getTransform(int k);
 		SparseMatrix<double> assembleStandard(Integrator2D integrator);
+		VectorXd rhsStandard(Integrator2D integrator, const std::shared_ptr<Force2D>& f);
 	private:
 		const int N_x_el;
 		const int N_y_el;
@@ -349,6 +350,21 @@ SparseMatrix<double> Mesh2D::assembleStandard(Integrator2D integrator)
 	}
 	matrix.makeCompressed();
 	return matrix;
+}
+
+VectorXd Mesh2D::rhsStandard(Integrator2D integrator, const std::shared_ptr<Force2D>& f)
+{
+	VectorXd rhs(N_h1_dofs);
+	rhs.setZero();
+	for (int k = 0; k < N_el; ++k)
+	{
+		VectorXd minirhs = integrator.force(f, h1_el, getTransform(k));
+		for (Vector2i& dof_i : h1_dofs[k])
+		{
+			rhs[dof_i[0]] += minirhs[dof_i[1]];
+		}
+	}
+	return rhs;
 }
 
 #endif // _Mesh2D_hpp

@@ -41,6 +41,7 @@ int main(int argc, char const *argv[])
 		std::cerr << "Unknown forcing function." << std::endl;
 		return 2;
 	}
+	VectorXd rhs = mesh.rhsStandard(integrate, force);
 
 	// std::cout << integrate.laplace(h1, h1, t) << std::endl;
 	// std::cout << std::endl;
@@ -66,6 +67,8 @@ int main(int argc, char const *argv[])
 	// std::cout << integrate.force(force, l2, t) << std::endl;
 	// std::cout << std::endl;
 	std::cout << system << std::endl;
+	std::cout << std::endl;
+	std::cout << rhs << std::endl;
 
 	return 0;
 }
