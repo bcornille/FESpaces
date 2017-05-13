@@ -64,7 +64,24 @@ int main(int argc, char const *argv[])
 	solver.factorize(system);
 	VectorXd x = solver.solve(rhs);
 
-	std::cout << x << std::endl;
+	// std::cout << x << std::endl;
+
+	double error;
+	if (formulation == "Standard")
+	{
+		error = mesh.errorStandard(integrate, force, x);
+	}
+	else if(formulation == "Mixed")
+	{
+		error = mesh.errorMixed(integrate, force, x);
+	}
+	else if(formulation == "Dual-Mixed")
+	{
+		error = mesh.errorDualMixed(integrate, force, x);
+	}
+
+	error = sqrt(error);
+	std::cout << error << std::endl;
 
 	return 0;
 }

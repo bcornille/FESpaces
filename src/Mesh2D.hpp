@@ -16,10 +16,16 @@ class Mesh2D
 		Transform2D getTransform(int k);
 		SparseMatrix<double> assembleStandard(Integrator2D integrator);
 		VectorXd rhsStandard(Integrator2D integrator, const std::shared_ptr<Force2D>& f);
+		double errorStandard(Integrator2D integrator, const std::shared_ptr<Force2D>& f,
+			VectorXd solution);
 		SparseMatrix<double> assembleMixed(Integrator2D integrator);
 		VectorXd rhsMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f);
+		double errorMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f,
+			VectorXd solution);
 		SparseMatrix<double> assembleDualMixed(Integrator2D integrator);
 		VectorXd rhsDualMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f);
+		double errorDualMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f,
+			VectorXd solution);
 	private:
 		const int N_x_el;
 		const int N_y_el;
@@ -371,6 +377,23 @@ VectorXd Mesh2D::rhsStandard(Integrator2D integrator, const std::shared_ptr<Forc
 	return rhs;
 }
 
+double Mesh2D::errorStandard(Integrator2D integrator, const std::shared_ptr<Force2D>& f,
+	VectorXd solution)
+{
+	double error = 0.0;
+	VectorXd coeffs((p + 1)*(p + 1));
+	for (int k = 0; k < N_el; ++k)
+	{
+		coeffs.setZero();
+		for (Vector2i& dof_i : h1_dofs[k])
+		{
+			coeffs[dof_i[1]] = solution[dof_i[0]];
+		}
+		error += integrator.error(f, h1_el, coeffs, getTransform(k));
+	}
+	return error;
+}
+
 SparseMatrix<double> Mesh2D::assembleMixed(Integrator2D integrator)
 {
 	SparseMatrix<double> matrix(N_hdiv_dofs + N_l2_dofs, N_hdiv_dofs + N_l2_dofs);
@@ -414,6 +437,23 @@ VectorXd Mesh2D::rhsMixed(Integrator2D integrator, const std::shared_ptr<Force2D
 	return rhs;
 }
 
+double Mesh2D::errorMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f,
+	VectorXd solution)
+{
+	double error = 0.0;
+	VectorXd coeffs(p*p);
+	for (int k = 0; k < N_el; ++k)
+	{
+		coeffs.setZero();
+		for (Vector2i& dof_i : l2_dofs[k])
+		{
+			coeffs[dof_i[1]] = solution[N_hdiv_dofs+dof_i[0]];
+		}
+		error += integrator.error(f, l2_el, coeffs, getTransform(k));
+	}
+	return error;
+}
+
 SparseMatrix<double> Mesh2D::assembleDualMixed(Integrator2D integrator)
 {
 	SparseMatrix<double> matrix(N_hcurl_dofs + N_h1_dofs, N_hcurl_dofs + N_h1_dofs);
@@ -455,6 +495,23 @@ VectorXd Mesh2D::rhsDualMixed(Integrator2D integrator, const std::shared_ptr<For
 		}
 	}
 	return rhs;
+}
+
+double Mesh2D::errorDualMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f,
+	VectorXd solution)
+{
+	double error = 0.0;
+	VectorXd coeffs((p + 1)*(p + 1));
+	for (int k = 0; k < N_el; ++k)
+	{
+		coeffs.setZero();
+		for (Vector2i& dof_i : h1_dofs[k])
+		{
+			coeffs[dof_i[1]] = solution[N_hcurl_dofs+dof_i[0]];
+		}
+		error += integrator.error(f, h1_el, coeffs, getTransform(k));
+	}
+	return error;
 }
 
 #endif // _Mesh2D_hpp
