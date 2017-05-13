@@ -1,0 +1,21 @@
+{
+	"Converge" : {
+		"p_min" : 1,
+		"p_max" : 10
+	},
+	"Mesh" : {
+		"x_min" : 0.0,
+		"x_max" : 1.0,
+		"N" : 4,
+		"map_order" : 3
+	},
+	"Integrator" : {
+		"N" : 22
+	},
+	"Plot" : {
+		"Enable" : "Off",
+		"SPE" : 51,
+		"Filetype" : "pdf"
+	},
+	"Function" : "ExpX3pX"
+}
