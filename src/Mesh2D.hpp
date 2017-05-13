@@ -18,6 +18,8 @@ class Mesh2D
 		VectorXd rhsStandard(Integrator2D integrator, const std::shared_ptr<Force2D>& f);
 		SparseMatrix<double> assembleMixed(Integrator2D integrator);
 		VectorXd rhsMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f);
+		SparseMatrix<double> assembleDualMixed(Integrator2D integrator);
+		VectorXd rhsDualMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f);
 	private:
 		const int N_x_el;
 		const int N_y_el;
@@ -407,6 +409,49 @@ VectorXd Mesh2D::rhsMixed(Integrator2D integrator, const std::shared_ptr<Force2D
 		for (Vector2i& dof_i : l2_dofs[k])
 		{
 			rhs[N_hdiv_dofs+dof_i[0]] += minirhs[dof_i[1]];
+		}
+	}
+	return rhs;
+}
+
+SparseMatrix<double> Mesh2D::assembleDualMixed(Integrator2D integrator)
+{
+	SparseMatrix<double> matrix(N_hcurl_dofs + N_h1_dofs, N_hcurl_dofs + N_h1_dofs);
+	matrix.reserve(VectorXi::Constant(N_hcurl_dofs + N_h1_dofs, 6*p*(p + 1) + 1));
+	matrix.setZero();
+	for (int k = 0; k < N_el; ++k)
+	{
+		MatrixXd mini_hcurl_mass = integrator.mass(hcurl_el, hcurl_el, getTransform(k));
+		MatrixXd mini_div = integrator.div(hcurl_el, h1_el, getTransform(k));
+		for (Vector2i& dof_j : hcurl_dofs[k])
+		{
+			for(Vector2i& dof_i : hcurl_dofs[k])
+			{
+				matrix.coeffRef(dof_i[0], dof_j[0]) += mini_hcurl_mass(dof_i[1], dof_j[1]);
+			}
+			for(Vector2i& dof_i : h1_dofs[k])
+			{
+				matrix.coeffRef(N_hcurl_dofs + dof_i[0], dof_j[0]) += mini_div(dof_i[1], dof_j[1]);
+			}
+		}
+	}
+	SparseMatrix<double> identity(N_hcurl_dofs + N_h1_dofs, N_hcurl_dofs + N_h1_dofs);
+	identity.setIdentity();
+	matrix = matrix.selfadjointView<Lower>()*identity;
+	matrix.makeCompressed();
+	return matrix;
+}
+
+VectorXd Mesh2D::rhsDualMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f)
+{
+	VectorXd rhs(N_hcurl_dofs + N_h1_dofs);
+	rhs.setZero();
+	for (int k = 0; k < N_el; ++k)
+	{
+		VectorXd minirhs = integrator.force(f, h1_el, getTransform(k));
+		for (Vector2i& dof_i : h1_dofs[k])
+		{
+			rhs[N_hcurl_dofs+dof_i[0]] -= minirhs[dof_i[1]];
 		}
 	}
 	return rhs;

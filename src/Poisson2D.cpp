@@ -22,7 +22,7 @@ int main(int argc, char const *argv[])
 
 	Mesh2D mesh(input["Mesh"]);
 	Integrator2D integrate(input["Integrator"]);
-	SparseMatrix<double> system = mesh.assembleMixed(integrate);
+	SparseMatrix<double> system = mesh.assembleDualMixed(integrate);
 	// int order = (int)input["Order"];
 	// H1_2D h1(order);
 	// HDiv_2D hdiv(order);
@@ -41,7 +41,7 @@ int main(int argc, char const *argv[])
 		std::cerr << "Unknown forcing function." << std::endl;
 		return 2;
 	}
-	VectorXd rhs = mesh.rhsMixed(integrate, force);
+	VectorXd rhs = mesh.rhsDualMixed(integrate, force);
 
 	// std::cout << integrate.laplace(h1, h1, t) << std::endl;
 	// std::cout << std::endl;
