@@ -6,6 +6,8 @@
 #include "Eigen/Eigenvalues"
 #include "Mesh2D.hpp"
 
+using namespace Eigen;
+
 int main(int argc, char const *argv[])
 {
 	if (argc != 3)
@@ -64,8 +66,6 @@ int main(int argc, char const *argv[])
 	solver.factorize(system);
 	VectorXd x = solver.solve(rhs);
 
-	// std::cout << x << std::endl;
-
 	double error;
 	if (formulation == "Standard")
 	{
@@ -82,6 +82,46 @@ int main(int argc, char const *argv[])
 
 	error = sqrt(error);
 	std::cout << error << std::endl;
+	output["error"] = error;
+	int outargs = 1;
+
+	if (input["Plot"]["Enable"] == "On")
+	{	
+		if (formulation == "Standard")
+		{
+			auto surface = mesh.samplePStandard(x, input["Mesh"], input["Plot"]);
+			output["xgrid"] = surface.x;
+			output["ygrid"] = surface.y;
+			output["Pgrid"] = surface.P;
+			outargs += 3;
+		}
+		else if(formulation == "Mixed")
+		{
+			
+		}
+		else if(formulation == "Dual-Mixed")
+		{
+	
+		}
+
+		std::ofstream outfile(argv[2]);
+		outfile << std::setw(outargs) << output << std::endl;
+
+		// If you want to run python plotting automatically from here
+		// /*
+		std::cout << std::endl;
+		std::cout << "Running python plotter ..." << std::endl;
+		std::string ifile = argv[1];
+		std::string ofile = argv[2];
+		std::string pyplot = "./plot/2plot.py -i " + ifile + " -o " + ofile;
+		std::system(pyplot.c_str());
+		//*/
+
+	} else
+	{
+		std::ofstream outfile(argv[2]);
+		outfile << std::setw(outargs) << output << std::endl;
+	}
 
 	return 0;
 }

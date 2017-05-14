@@ -26,6 +26,7 @@ class Mesh2D
 		VectorXd rhsDualMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f);
 		double errorDualMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f,
 			VectorXd solution);
+		auto  samplePStandard(VectorXd solution, json params, json plot);
 	private:
 		const int N_x_el;
 		const int N_y_el;
@@ -392,6 +393,73 @@ double Mesh2D::errorStandard(Integrator2D integrator, const std::shared_ptr<Forc
 		error += integrator.error(f, h1_el, coeffs, getTransform(k));
 	}
 	return error;
+}
+
+auto Mesh2D::samplePStandard(VectorXd solution, json params, json plot)
+{
+	// Return a surface defined by 2D arrays x, y, and P
+	struct surface 
+	{
+		std::vector<std::vector<double>> x; 
+		std::vector<std::vector<double>> y; 
+		std::vector<std::vector<double>> P;
+	};
+
+	// Set up the grid
+	const int spef = (int)plot["SPEf"];
+	const int Npef = spef*spef; 
+	std::vector<std::vector<double>> xgrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<double>> ygrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<double>> Pgrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	MatrixXd xe(spef,spef);
+	MatrixXd ye(spef,spef);
+	double dX = ((double)params["x_max"] - (double)params["x_min"])/(N_x_el);
+	double dY = ((double)params["y_max"] - (double)params["y_min"])/(N_y_el);
+	double dx = dX/(spef-1);
+	double dy = dY/(spef-1);
+	VectorXd coeffs((p + 1)*(p + 1));
+	Vector2d loc;
+
+	// Determine sample "points" per element - mesh of <spe> points from -1 to 1
+	for (int m = 0; m < spef; ++m)
+	{
+		for (int n = 0; n < spef; ++n)
+		{
+			xe(n,m) = 2*n*(1.0/(double)(spef-1.0)) - 1;
+			ye(n,m) = 2*m*(1.0/(double)(spef-1.0)) - 1;
+		}
+	}
+
+	// Loop through cells
+	for (int i = 0; i < N_y_el; ++i)
+	{
+		for (int j = 0; j < N_x_el; ++j)
+		{
+			// Determine coefficients for the cell we are in
+			int k = j + N_x_el*i;
+			coeffs.setZero();
+			for (Vector2i& dof_i : h1_dofs[k])
+			{
+				coeffs[dof_i[1]] = solution[dof_i[0]];
+			}
+			
+			// Determine x, y, and P values for the cell we are in
+			for (int m = 0; m < spef; ++m)
+			{
+				for (int n = 0; n < spef; ++n)
+				{
+					xgrid[n+j*spef][m+i*spef] = n*dx + j*dX;
+					ygrid[n+j*spef][m+i*spef] = m*dy + i*dY;
+
+					loc(0) = xe(n,m);
+					loc(1) = ye(n,m);
+					Pgrid[n+j*spef][m+i*spef] = coeffs.dot(h1_el.eval(loc));
+				}
+			}
+		}
+	}
+
+	return surface {xgrid, ygrid, Pgrid};
 }
 
 SparseMatrix<double> Mesh2D::assembleMixed(Integrator2D integrator)

@@ -2,17 +2,23 @@
   "Formulation" : "Standard",
   "Function" : "SinXSinY",
   "Integrator" : {
-    "N" : 5
+    "N" : 9
   },
   "Mesh" : {
     "x_min" : 0.0,
     "x_max" : 1.0,
-    "N_x" : 2,
+    "N_x" : 5,
     "y_min" : 0.0,
     "y_max" : 1.0,
-    "N_y" : 2,
-    "el_order" : 2,
+    "N_y" : 3,
+    "el_order" : 3,
     "c" : 0.0,
     "map_order" : 1
+  },
+  "Plot" : {
+    "Enable" : "On",
+    "SPEc" : 5,
+    "SPEf" : 21,
+    "Filetype" : "pdf" 
   }
 }
