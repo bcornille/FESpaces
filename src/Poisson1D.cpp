@@ -8,6 +8,7 @@
 #include "Integrators.hpp"
 #include "ReferenceElements.hpp"
 #include <cstdlib>
+#include <numeric>
 
 using namespace Eigen;
 
@@ -323,19 +324,16 @@ int main(int argc, char const *argv[])
 			xs[i] = transform.forwardTransform(xe[i]);
 			VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
 			VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
-			if(formulation == "Mixed") us[i] += h1s[0]*u[0];
-			for (int k=1; k<order+1; ++k)
+			if (formulation == "Mixed")
 			{
-				if(formulation == "Mixed")
-				{
-					us[i] += h1s[k]*u[k];
-					Ps[i] += l2s[k-1]*P[k-1];
-				}
-				else
-				{
-					Ps[i] += h1s[k]*P[k-1];
-					if(formulation == "Mimetic") us[i] += l2s[k-1]*u[k-1];
-				}
+				us[i] = std::inner_product(h1s.begin(),h1s.end(),u.begin(),0.0);
+				Ps[i] = std::inner_product(l2s.begin(),l2s.end(),P.begin(),0.0);
+			} 
+			else
+			{
+				Ps[i] = std::inner_product(h1s.begin()+1,h1s.end(),P.begin(),0.0);
+				if (formulation == "Mimetic")
+					us[i] = std::inner_product(l2s.begin(),l2s.end(),u.begin(),0.0);
 			}
 		}
 		for (int j=1; j < N_el - 1; ++j)
@@ -346,43 +344,36 @@ int main(int argc, char const *argv[])
 				xs[i+j*spe] = transform.forwardTransform(xe[i]);
 				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
 				VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
-				for (int k=0; k<order+1; ++k)
+				if (formulation == "Mixed")
 				{
-					if(formulation == "Mixed")
-					{
-						us[i+j*spe] += h1s[k]*u[order*j+k];
-						if(k != order) Ps[i+j*spe] += l2s[k]*P[order*j+k];
-					}
-					else
-					{
-						Ps[i+j*spe] += h1s[k]*P[order*j+(k-1)];
-						if ( (formulation == "Mimetic") && (k!=order) )
-						{
-							us[i+j*spe] += l2s[k]*u[order*j+k];
-						}
-					}
+					us[i+j*spe] = std::inner_product(h1s.begin(),h1s.end(),u.begin()+(order*j),0.0);
+					Ps[i+j*spe] = std::inner_product(l2s.begin(),l2s.end(),P.begin()+(order*j),0.0);
+				} 
+				else
+				{
+					Ps[i+j*spe] = std::inner_product(h1s.begin(),h1s.end(),P.begin()+(order*j-1),0.0);
+					if (formulation == "Mimetic")
+						us[i+j*spe] = std::inner_product(l2s.begin(),l2s.end(),u.begin()+(order*j),0.0);
 				}
 			}
 		}
 		transform = mesh.getTransform(N_el-1);
+		const int J = (N_el-1);
 		for (int i = 0; i < spe; ++i)
 		{
-			xs[i+(N_el-1)*spe] = transform.forwardTransform(xe[i]);
+			xs[i+J*spe] = transform.forwardTransform(xe[i]);
 			VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
 			VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
-			if(formulation == "Mixed") us[i+(N_el-1)*spe] += h1s[order]*u[order*N_el];
-			for (int k=0; k<order; ++k)
+			if (formulation == "Mixed")
 			{
-				if(formulation == "Mixed")
-				{
-					us[i+(N_el-1)*spe] += h1s[k]*u[order*(N_el-1)+k];
-					Ps[i+(N_el-1)*spe] += l2s[k]*P[order*(N_el-1)+k];
-				}
-				else
-				{
-					Ps[i+(N_el-1)*spe] += h1s[k]*P[order*(N_el-1)+(k-1)];
-					if(formulation == "Mimetic") us[i+(N_el-1)*spe] += l2s[k]*u[order*(N_el-1)+k];
-				}
+				us[i+J*spe] = std::inner_product(h1s.begin(),h1s.end(),u.begin()+(order*J),0.0);
+				Ps[i+J*spe] = std::inner_product(l2s.begin(),l2s.end(),P.begin()+(order*J),0.0);
+			} 
+			else
+			{
+				Ps[i+J*spe] = std::inner_product(h1s.begin(),h1s.end()-1,P.begin()+(order*J-1),0.0);
+				if (formulation == "Mimetic")
+					us[i+J*spe] = std::inner_product(l2s.begin(),l2s.end(),u.begin()+(order*J),0.0);
 			}
 		}
 
