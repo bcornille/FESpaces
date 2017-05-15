@@ -84,6 +84,23 @@ def main(argv):
 	plt.show()
 	plt.savefig("%s%s" % ("./plot/CalcP.",filetype))
 
+	if formulation != "Standard":
+		U = output["uxgrid"]
+		V = output["uygrid"]
+
+		f3 = plt.figure(3,figsize=(8,8))
+		ax = f3.add_subplot(111, projection='3d')
+		surf = ax.plot_surface(X,Y,U, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+		f3.colorbar(surf, shrink=0.5, aspect=5)
+		plt.show()
+		plt.savefig("%s%s" % ("./plot/CalcUx.",filetype))
+
+		f4 = plt.figure(4,figsize=(8,8))
+		ax = f4.add_subplot(111, projection='3d')
+		surf = ax.plot_surface(X,Y,V, cmap=cm.coolwarm, linewidth=0, antialiased=False)
+		f4.colorbar(surf, shrink=0.5, aspect=5)
+		plt.show()
+		plt.savefig("%s%s" % ("./plot/CalcVx.",filetype))
 
 
 if __name__ == "__main__":

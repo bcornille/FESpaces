@@ -83,7 +83,6 @@ int main(int argc, char const *argv[])
 	error = sqrt(error);
 	std::cout << error << std::endl;
 	output["error"] = error;
-	int outargs = 1;
 
 	if (input["Plot"]["Enable"] == "On")
 	{	
@@ -93,19 +92,28 @@ int main(int argc, char const *argv[])
 			output["xgrid"] = surface.x;
 			output["ygrid"] = surface.y;
 			output["Pgrid"] = surface.P;
-			outargs += 3;
 		}
 		else if(formulation == "Mixed")
 		{
-			
+			auto surface = mesh.samplePuMixed(x, input["Mesh"], input["Plot"]);
+			output["xgrid"] = surface.x;
+			output["ygrid"] = surface.y;
+			output["Pgrid"] = surface.P;
+			output["uxgrid"] = surface.ux;
+			output["uygrid"] = surface.uy;	
 		}
 		else if(formulation == "Dual-Mixed")
 		{
-	
+			auto surface = mesh.samplePuDualMixed(x, input["Mesh"], input["Plot"]);
+			output["xgrid"] = surface.x;
+			output["ygrid"] = surface.y;
+			output["Pgrid"] = surface.P;
+			output["uxgrid"] = surface.ux;
+			output["uygrid"] = surface.uy;
 		}
 
 		std::ofstream outfile(argv[2]);
-		outfile << std::setw(outargs) << output << std::endl;
+		outfile << std::setw(2) << output << std::endl;
 
 		// If you want to run python plotting automatically from here
 		// /*
@@ -120,7 +128,7 @@ int main(int argc, char const *argv[])
 	} else
 	{
 		std::ofstream outfile(argv[2]);
-		outfile << std::setw(outargs) << output << std::endl;
+		outfile << std::setw(2) << output << std::endl;
 	}
 
 	return 0;

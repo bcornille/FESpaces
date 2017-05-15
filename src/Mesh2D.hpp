@@ -27,6 +27,8 @@ class Mesh2D
 		double errorDualMixed(Integrator2D integrator, const std::shared_ptr<Force2D>& f,
 			VectorXd solution);
 		auto  samplePStandard(VectorXd solution, json params, json plot);
+		auto  samplePuDualMixed(VectorXd solution, json params, json plot);
+		auto  samplePuMixed(VectorXd solution, json params, json plot);
 	private:
 		const int N_x_el;
 		const int N_y_el;
@@ -400,33 +402,33 @@ auto Mesh2D::samplePStandard(VectorXd solution, json params, json plot)
 	// Return a surface defined by 2D arrays x, y, and P
 	struct surface 
 	{
-		std::vector<std::vector<double>> x; 
-		std::vector<std::vector<double>> y; 
-		std::vector<std::vector<double>> P;
+		std::vector<std::vector<double> > x; 
+		std::vector<std::vector<double> > y; 
+		std::vector<std::vector<double> > P;
 	};
 
 	// Set up the grid
 	const int spef = (int)plot["SPEf"];
 	const int Npef = spef*spef; 
-	std::vector<std::vector<double>> xgrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
-	std::vector<std::vector<double>> ygrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
-	std::vector<std::vector<double>> Pgrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
-	MatrixXd xe(spef,spef);
-	MatrixXd ye(spef,spef);
+	std::vector<std::vector<double> > xgrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<double> > ygrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<double> > Pgrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<Vector2d> > xys(spef, std::vector<Vector2d>(spef));
 	double dX = ((double)params["x_max"] - (double)params["x_min"])/(N_x_el);
 	double dY = ((double)params["y_max"] - (double)params["y_min"])/(N_y_el);
 	double dx = dX/(spef-1);
 	double dy = dY/(spef-1);
-	VectorXd coeffs((p + 1)*(p + 1));
+	VectorXd coeffs(h1_el.dofs());
 	Vector2d loc;
+	Transform2D transform; 
 
 	// Determine sample "points" per element - mesh of <spe> points from -1 to 1
 	for (int m = 0; m < spef; ++m)
 	{
 		for (int n = 0; n < spef; ++n)
 		{
-			xe(n,m) = 2*n*(1.0/(double)(spef-1.0)) - 1;
-			ye(n,m) = 2*m*(1.0/(double)(spef-1.0)) - 1;
+			xys[n][m][0] = 2*n*(1.0/(double)(spef-1.0)) - 1;
+			xys[n][m][1] = 2*m*(1.0/(double)(spef-1.0)) - 1;
 		}
 	}
 
@@ -443,16 +445,17 @@ auto Mesh2D::samplePStandard(VectorXd solution, json params, json plot)
 				coeffs[dof_i[1]] = solution[dof_i[0]];
 			}
 			
+			transform = getTransform(k);
+
 			// Determine x, y, and P values for the cell we are in
 			for (int m = 0; m < spef; ++m)
 			{
 				for (int n = 0; n < spef; ++n)
 				{
-					xgrid[n+j*spef][m+i*spef] = n*dx + j*dX;
-					ygrid[n+j*spef][m+i*spef] = m*dy + i*dY;
-
-					loc(0) = xe(n,m);
-					loc(1) = ye(n,m);
+					Vector2d xystemp = transform.forwardTransform(xys[n][m]);
+					xgrid[n+j*spef][m+i*spef] = xystemp[0];
+					ygrid[n+j*spef][m+i*spef] = xystemp[1];
+					loc = xys[n][m];
 					Pgrid[n+j*spef][m+i*spef] = coeffs.dot(h1_el.eval(loc));
 				}
 			}
@@ -522,6 +525,90 @@ double Mesh2D::errorMixed(Integrator2D integrator, const std::shared_ptr<Force2D
 	return error;
 }
 
+auto Mesh2D::samplePuMixed(VectorXd solution, json params, json plot)
+{
+	// Return a surface defined by 2D arrays x, y, ux, uy, P
+	struct surface 
+	{
+		std::vector<std::vector<double> > x; 
+		std::vector<std::vector<double> > y; 
+		std::vector<std::vector<double> > P;
+		std::vector<std::vector<double> > ux;
+		std::vector<std::vector<double> > uy;
+	};
+
+	// Set up the grid
+	const int spef = (int)plot["SPEf"];
+	const int Npef = spef*spef; 
+	std::vector<std::vector<double> > xgrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<double> > ygrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<double> > Pgrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<double> > uxgrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<double> > uygrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<Vector2d> > xys(spef, std::vector<Vector2d>(spef));
+	double dX = ((double)params["x_max"] - (double)params["x_min"])/(N_x_el);
+	double dY = ((double)params["y_max"] - (double)params["y_min"])/(N_y_el);
+	double dx = dX/(spef-1);
+	double dy = dY/(spef-1);
+	VectorXd coeffsP(l2_el.dofs());
+	RowVectorXd coeffsu(hdiv_el.dofs());
+	Vector2d loc;
+	Transform2D transform;
+
+	// Determine sample "points" per element - mesh of <spe> points from -1 to 1
+	for (int m = 0; m < spef; ++m)
+	{
+		for (int n = 0; n < spef; ++n)
+		{
+			xys[n][m][0] = 2*n*(1.0/(double)(spef-1.0)) - 1;
+			xys[n][m][1] = 2*m*(1.0/(double)(spef-1.0)) - 1;
+		}
+	}
+
+	// Loop through cells
+	for (int i = 0; i < N_y_el; ++i)
+	{
+		for (int j = 0; j < N_x_el; ++j)
+		{
+			// Determine coefficients for the cell we are in
+			int k = j + N_x_el*i;
+			coeffsP.setZero();
+			coeffsu.setZero();
+			for (Vector2i& dof_i : l2_dofs[k])
+			{
+				coeffsP[dof_i[1]] = solution[N_hdiv_dofs+dof_i[0]];
+			}
+			for (Vector2i& dof_i : hdiv_dofs[k])
+			{
+				coeffsu[dof_i[1]] = solution[dof_i[0]];
+			}
+						
+			transform = getTransform(k);
+
+			// Determine x, y, and P values for the cell we are in
+			for (int m = 0; m < spef; ++m)
+			{
+				for (int n = 0; n < spef; ++n)
+				{
+					Vector2d xystemp = transform.forwardTransform(xys[n][m]);
+					xgrid[n+j*spef][m+i*spef] = xystemp[0];
+					ygrid[n+j*spef][m+i*spef] = xystemp[1];
+					loc = xys[n][m];
+					Pgrid[n+j*spef][m+i*spef] = coeffsP.dot(l2_el.eval(loc));
+
+					Vector2d utemp = ((coeffsu*hdiv_el.eval(loc)) * 
+						(transform.jacobianMatrix(xys[n][m])).transpose()).transpose();
+
+					uxgrid[n+j*spef][m+i*spef] = utemp[0]/(transform.jacobian(xys[n][m]));
+					uygrid[n+j*spef][m+i*spef] = utemp[1]/(transform.jacobian(xys[n][m]));
+				}
+			}
+		}
+	}
+
+	return surface {xgrid, ygrid, Pgrid, uxgrid, uygrid};
+}
+
 SparseMatrix<double> Mesh2D::assembleDualMixed(Integrator2D integrator)
 {
 	SparseMatrix<double> matrix(N_hcurl_dofs + N_h1_dofs, N_hcurl_dofs + N_h1_dofs);
@@ -580,6 +667,90 @@ double Mesh2D::errorDualMixed(Integrator2D integrator, const std::shared_ptr<For
 		error += integrator.error(f, h1_el, coeffs, getTransform(k));
 	}
 	return error;
+}
+
+auto Mesh2D::samplePuDualMixed(VectorXd solution, json params, json plot)
+{
+	// Return a surface defined by 2D arrays x, y, ux, uy, P
+	struct surface 
+	{
+		std::vector<std::vector<double> > x; 
+		std::vector<std::vector<double> > y; 
+		std::vector<std::vector<double> > P;
+		std::vector<std::vector<double> > ux;
+		std::vector<std::vector<double> > uy;
+	};
+
+	// Set up the grid
+	const int spef = (int)plot["SPEf"];
+	const int Npef = spef*spef; 
+	std::vector<std::vector<double> > xgrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<double> > ygrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<double> > Pgrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<double> > uxgrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<double> > uygrid(spef*N_x_el, std::vector<double>(spef*N_y_el));
+	std::vector<std::vector<Vector2d> > xys(spef, std::vector<Vector2d>(spef));
+	double dX = ((double)params["x_max"] - (double)params["x_min"])/(N_x_el);
+	double dY = ((double)params["y_max"] - (double)params["y_min"])/(N_y_el);
+	double dx = dX/(spef-1);
+	double dy = dY/(spef-1);
+	VectorXd coeffsP(h1_el.dofs());
+	RowVectorXd coeffsu(hcurl_el.dofs());
+	Vector2d loc;
+	Transform2D transform;
+
+	// Determine sample "points" per element - mesh of <spe> points from -1 to 1
+	for (int m = 0; m < spef; ++m)
+	{
+		for (int n = 0; n < spef; ++n)
+		{
+			xys[n][m][0] = 2*n*(1.0/(double)(spef-1.0)) - 1;
+			xys[n][m][1] = 2*m*(1.0/(double)(spef-1.0)) - 1;
+		}
+	}
+
+	// Loop through cells
+	for (int i = 0; i < N_y_el; ++i)
+	{
+		for (int j = 0; j < N_x_el; ++j)
+		{
+			// Determine coefficients for the cell we are in
+			int k = j + N_x_el*i;
+			coeffsP.setZero();
+			coeffsu.setZero();
+			for (Vector2i& dof_i : h1_dofs[k])
+			{
+				coeffsP[dof_i[1]] = solution[N_hcurl_dofs+dof_i[0]];
+			}
+			for (Vector2i& dof_i : hcurl_dofs[k])
+			{
+				coeffsu[dof_i[1]] = solution[dof_i[0]];
+			}
+						
+			transform = getTransform(k);
+
+			// Determine x, y, and P values for the cell we are in
+			for (int m = 0; m < spef; ++m)
+			{
+				for (int n = 0; n < spef; ++n)
+				{
+					Vector2d xystemp = transform.forwardTransform(xys[n][m]);
+					xgrid[n+j*spef][m+i*spef] = xystemp[0];
+					ygrid[n+j*spef][m+i*spef] = xystemp[1];
+					loc = xys[n][m];
+					Pgrid[n+j*spef][m+i*spef] = coeffsP.dot(h1_el.eval(loc));
+
+					Vector2d utemp = ((coeffsu*hcurl_el.eval(loc)) * 
+						transform.jacobianInverse(xys[n][m])).transpose();
+
+					uxgrid[n+j*spef][m+i*spef] = utemp[0];
+					uygrid[n+j*spef][m+i*spef] = utemp[1];
+				}
+			}
+		}
+	}
+
+	return surface {xgrid, ygrid, Pgrid, uxgrid, uygrid};
 }
 
 #endif // _Mesh2D_hpp

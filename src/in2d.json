@@ -1,5 +1,5 @@
 {
-  "Formulation" : "Standard",
+  "Formulation" : "Dual-Mixed",
   "Function" : "SinXSinY",
   "Integrator" : {
     "N" : 9
