@@ -7,6 +7,8 @@
 #include "Mesh1D.hpp"
 #include "Integrators.hpp"
 #include "ReferenceElements.hpp"
+#include <cstdlib>
+#include <numeric>
 
 using namespace Eigen;
 
@@ -28,14 +30,15 @@ int main(int argc, char const *argv[])
 	Integrator1D integrate(input["Integrator"]);
 	int order = (int)input["Order"];
 	int N_el = (int)input["Mesh"]["N"] + 1;
-	H1_1D h1(order);
-	L2_1D l2(order);
-	std::shared_ptr<Force1D> force;
+	int size = 0;
+	H1_1D h1(order); // H^1 reference element.
+	L2_1D l2(order); // L^2 reference element.
+	std::shared_ptr<Force1D> force; //Forcing function class pointer.
 	SparseMatrix<double> system;
 	VectorXd rhs;
-	// SimplicialLLT<SparseMatrix<double> > solver;
 	SparseLU<SparseMatrix<double> > solver;
 
+	// Set the forcing function.
 	std::string force_type = input["Function"];
 	if (force_type == "Two")
 	{
@@ -51,12 +54,14 @@ int main(int argc, char const *argv[])
 		return 2;
 	}
 
+	// Assemble the system of equations.
 	std::string formulation = input["Formulation"];
 	if (formulation == "Standard")
 	{
 		// This is for the H1 standard system.
-		system.resize(N_el*order - 1, N_el*order - 1);
-		rhs.resize(N_el*order - 1);
+		size = N_el*order - 1;
+		system.resize(size, size);
+		rhs.resize(size);
 		system.reserve(VectorXi::Constant(N_el*order - 1, 2*order + 1));
 		system.setZero();
 		rhs.setZero();
@@ -106,8 +111,9 @@ int main(int argc, char const *argv[])
 		 * 		-<u,v> + <p,dv/dx> = 0	for all v in H^1
 		 * 		<du/dx,q> = <f,q>		for all q in L^2
 		 */
-		system.resize(2*N_el*order + 1, 2*N_el*order + 1);
-		rhs.resize(2*N_el*order + 1);
+		size = 2*N_el*order + 1;
+		system.resize(size, size);
+		rhs.resize(size);
 		system.reserve(VectorXi::Constant(2*N_el*order + 1, 4*order + 1));
 		system.setZero();
 		rhs.setZero();
@@ -134,6 +140,7 @@ int main(int argc, char const *argv[])
 		}
 		SparseMatrix<double> identity(2*N_el*order + 1, 2*N_el*order + 1);
 		identity.setIdentity();
+		//Use symmetric view to populate upper half of the matrix.
 		system = system.selfadjointView<Lower>()*identity;
 	}
 	else if (formulation == "Mimetic")
@@ -148,8 +155,9 @@ int main(int argc, char const *argv[])
 		 * 		<u,v> + <dp/dx,v> = 0	for all v in L^2
 		 * 		<u,dq/dx> = -<f,q>		for all q in H^1
 		 */
-		system.resize(2*N_el*order - 1, 2*N_el*order - 1);
-		rhs.resize(2*N_el*order - 1);
+		size = 2*N_el*order - 1;
+		system.resize(size, size);
+		rhs.resize(size);
 		system.reserve(VectorXi::Constant(2*N_el*order - 1, 3*order));
 		system.setZero();
 		rhs.setZero();
@@ -199,6 +207,7 @@ int main(int argc, char const *argv[])
 		}
 		SparseMatrix<double> identity(2*N_el*order - 1, 2*N_el*order - 1);
 		identity.setIdentity();
+		//Use symmetric view to populate lower half of the matrix.
 		system = system.selfadjointView<Upper>()*identity;
 	}
 	else
@@ -207,21 +216,14 @@ int main(int argc, char const *argv[])
 		return 3;
 	}
 
-
 	system.makeCompressed();
-
-	std::cout << system << std::endl;
-	std::cout << rhs << std::endl;
-	std::cout << std::endl;
 
 	solver.analyzePattern(system);
 	solver.factorize(system);
-	// std::cout << solver.determinant() << std::endl;
-	// std::cout << std::endl;
+
 	VectorXd x = solver.solve(rhs);
 
-	std::cout << x << std::endl;
-
+	// Calculate square of the error in solution using the integrator.
 	double error = 0.0;
 	if (formulation == "Standard")
 	{
@@ -259,40 +261,139 @@ int main(int argc, char const *argv[])
 		error += integrate.error(force, h1, segment, mesh.getTransform(N_el-1));
 	}
 
-	error = sqrt(error);
+	error = sqrt(error); // Get L^2 error from its square.
 
-	std::cout << std::endl;
-	std::cout << error << std::endl;
-
-	// // std::vector<double> v(N_el*order + 1);
-	// std::vector<double> v(N_el*order);
-	// // v[0] = 0.0;
-	// v[0] = x[N_el*order-2];
-	// for (int i = 1; i < N_el*order; ++i)
-	// {
-	// 	// v[i] = x[i-1];
-	// 	v[i] = x[N_el*order+i-2];
-	// }
-	// // v[N_el*order] = 0.0;
-
-	// std::cout << integrate.mass(l2, l2, mesh.getTransform(0)) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.grad(l2, h1, mesh.getTransform(0)) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.force(force, h1, mesh.getTransform(0)) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.mass(h1, h1, mesh.getTransform(0)) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.grad(h1,l2, mesh.getTransform(0)) << std::endl;
-	// std::cout << std::endl;
-	// std::cout << integrate.force(force, l2, mesh.getTransform(0)) << std::endl;
+	std::cout << "Solution error: " << error << std::endl;
 
 	output["x"] = mesh.nodes();
 	output["error"] = error;
-	// output["u"] = v;
 
-	std::ofstream outfile(argv[2]);
-	outfile << std::setw(2) << output << std::endl;
+	// Also convert x to u and P vectors for the json output
+	std::vector<double> u, P;
+	if (formulation == "Standard")
+	{
+		P.resize(size);
+		VectorXd::Map(&P[0], x.size()) = x;
+	}
+	else if(formulation == "Mixed")
+	{
+		P.resize(N_el*order);
+		u.resize(N_el*order + 1);
+		VectorXd::Map(&P[0], P.size()) = x.tail(P.size());
+		VectorXd::Map(&u[0], u.size()) = x.head(u.size());
+	}
+	else if (formulation == "Mimetic")
+	{
+		P.resize(N_el*order - 1);
+		u.resize(N_el*order);
+		VectorXd::Map(&P[0], P.size()) = x.tail(P.size());
+		VectorXd::Map(&u[0], u.size()) = x.head(u.size());
+	}	
+	output["u"] = u;
+	output["P"] = P;
+
+	// Plotting and output.
+	if (input["Plot"]["Enable"] != "On")
+	{
+		std::ofstream outfile(argv[2]);
+		outfile << std::setw(4) << output << std::endl;
+	} else
+	{
+		// Set up from grids for plotting output
+		int spe = (int)input["Plot"]["SPE"]; //samples per element
+		double len = (double)input["Mesh"]["x_max"] - (double)input["Mesh"]["x_min"];
+		std::vector<double> xs, xe, us, Ps, h1s, l2s;
+		xs.resize(spe*N_el);
+		xe.resize(spe);
+		us.resize(spe*N_el);
+		Ps.resize(spe*N_el);
+		h1s.resize(order+1);
+		l2s.resize(order);
+
+		// Determine sample "points" per element - mesh of <spe> points from -1 to 1
+		for (int i=0; i<spe; ++i)
+		{
+			xe[i] = 2*i*(1/(double)(spe-1))-1;
+		}
+
+		// Fill in the grids for plotting output
+		Transform1D transform;
+		transform = mesh.getTransform(0);
+		for (int i = 0; i < spe; ++i)
+		{
+			xs[i] = transform.forwardTransform(xe[i]);
+			VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+			VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+			if (formulation == "Mixed")
+			{
+				us[i] = std::inner_product(h1s.begin(),h1s.end(),u.begin(),0.0);
+				Ps[i] = std::inner_product(l2s.begin(),l2s.end(),P.begin(),0.0);
+			} 
+			else
+			{
+				Ps[i] = std::inner_product(h1s.begin()+1,h1s.end(),P.begin(),0.0);
+				if (formulation == "Mimetic")
+					us[i] = std::inner_product(l2s.begin(),l2s.end(),u.begin(),0.0);
+			}
+		}
+		for (int j=1; j < N_el - 1; ++j)
+		{
+			transform = mesh.getTransform(j);
+			for (int i=0; i<spe; ++i)
+			{
+				xs[i+j*spe] = transform.forwardTransform(xe[i]);
+				VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+				VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+				if (formulation == "Mixed")
+				{
+					us[i+j*spe] = std::inner_product(h1s.begin(),h1s.end(),u.begin()+(order*j),0.0);
+					Ps[i+j*spe] = std::inner_product(l2s.begin(),l2s.end(),P.begin()+(order*j),0.0);
+				} 
+				else
+				{
+					Ps[i+j*spe] = std::inner_product(h1s.begin(),h1s.end(),P.begin()+(order*j-1),0.0);
+					if (formulation == "Mimetic")
+						us[i+j*spe] = std::inner_product(l2s.begin(),l2s.end(),u.begin()+(order*j),0.0);
+				}
+			}
+		}
+		transform = mesh.getTransform(N_el-1);
+		const int J = (N_el-1);
+		for (int i = 0; i < spe; ++i)
+		{
+			xs[i+J*spe] = transform.forwardTransform(xe[i]);
+			VectorXd::Map(&h1s[0], h1s.size()) = h1.eval(xe[i]);
+			VectorXd::Map(&l2s[0], l2s.size()) = l2.eval(xe[i]);
+			if (formulation == "Mixed")
+			{
+				us[i+J*spe] = std::inner_product(h1s.begin(),h1s.end(),u.begin()+(order*J),0.0);
+				Ps[i+J*spe] = std::inner_product(l2s.begin(),l2s.end(),P.begin()+(order*J),0.0);
+			} 
+			else
+			{
+				Ps[i+J*spe] = std::inner_product(h1s.begin(),h1s.end()-1,P.begin()+(order*J-1),0.0);
+				if (formulation == "Mimetic")
+					us[i+J*spe] = std::inner_product(l2s.begin(),l2s.end(),u.begin()+(order*J),0.0);
+			}
+		}
+
+		output["xgrid"] = xs;
+		output["Pgrid"] = Ps;
+		output["ugrid"] = us;
+
+		std::ofstream outfile(argv[2]);
+		outfile << std::setw(4) << output << std::endl;
+
+		// If you want to run python plotting automatically from here
+		// /*
+		std::cout << std::endl;
+		std::cout << "Running python plotter ..." << std::endl;
+		std::string ifile = argv[1];
+		std::string ofile = argv[2];
+		std::string pyplot = "./plot/pyplot.py -i " + ifile + " -o " + ofile;
+		std::system(pyplot.c_str());
+		//*/
+	}
 
 	return 0;
 }
