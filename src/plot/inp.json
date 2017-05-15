@@ -6,13 +6,13 @@
 		"h_max" : 7,
 		"p_minh" : 1,
 		"p_maxh" : 7,
-		"curve" : 0.20
+		"curve" : 0.25
 	},
 	"Mesh" : {
 		"x_min" : 0.0,
 		"x_max" : 1.0,
-		"N" : 4,
-		"map_order" : 3
+		"N" : 3,
+		"map_order" : 1
 	},
 	"Integrator" : {
 		"N" : 22

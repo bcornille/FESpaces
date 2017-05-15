@@ -58,6 +58,7 @@ def main(argv):
 		for f, formulation in enumerate(['Standard', 'Mixed', 'Mimetic']):
 			for p in range(p1,p2):
 				params["Formulation"] = formulation
+                                params["Mesh"]["map_order"] = p
 				if formulation == "Mixed":
 					params["Order"] = p+1
 				else:
@@ -80,6 +81,7 @@ def main(argv):
 				for h in range(h1,h2):
 					nelems[h-h1] = int(math.pow(2,h))
 					params["Mesh"]["N"] = nelems[h-h1]
+					params["Mesh"]["map_order"] = p
 					params["Formulation"] = formulation
 					if formulation == "Mixed":
 						params["Order"] = p+1
