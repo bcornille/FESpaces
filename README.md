@@ -1,5 +1,7 @@
 # FESpaces
 
+This repository contains programs for solving the Poisson equation using Mixed Finite Element Methods.
+
 ## Compiling
 
 ### Poisson1D
