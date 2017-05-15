@@ -1,0 +1,24 @@
+{
+  "Formulation" : "Dual-Mixed",
+  "Function" : "SinXSinY",
+  "Integrator" : {
+    "N" : 20
+  },
+  "Mesh" : {
+    "x_min" : 0.0,
+    "x_max" : 1.0,
+    "N_x" : 4,
+    "y_min" : 0.0,
+    "y_max" : 1.0,
+    "N_y" : 4,
+    "el_order" : 3,
+    "c" : 0.2,
+    "map_order" : 1
+  },
+  "Plot" : {
+    "Enable" : "On",
+    "SPEc" : 11,
+    "SPEf" : 55,
+    "Filetype" : "pdf" 
+  }
+}

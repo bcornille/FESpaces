@@ -1,0 +1,30 @@
+{
+  "Function" : "SinXSinY",
+  "Integrator" : {
+    "N" : 22
+  },
+  "Mesh" : {
+    "x_min" : 0.0,
+    "x_max" : 1.0,
+    "N_x" : 3,
+    "y_min" : 0.0,
+    "y_max" : 1.0,
+    "N_y" : 3,
+    "map_order" : 1
+  },
+  "Converge" : {
+    "p_min" : 1,
+    "p_max" : 9,
+    "h_min" : 1,
+    "h_max" : 5,
+    "p_minh" : 1,
+    "p_maxh" : 5,
+    "curve" : 0.20
+  },
+  "Plot" : {
+    "Enable" : "Off",
+    "SPEc" : 11,
+    "SPEf" : 55,
+    "Filetype" : "pdf" 
+  }
+}
