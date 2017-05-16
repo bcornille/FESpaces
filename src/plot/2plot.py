@@ -92,10 +92,10 @@ def main(argv):
 	t2 = (', Formulation: ') 
 	t3 = ('\n Poly. degree: ')
 	t4 = (r', Elements: ')
-	plt.title("%s %s%s%s%s%s" % (t1,formulation,t3,orderP,t4,elems), fontsize=bfsize)
+	plt.title("%s %s%s%s%s" % (t1,t3,orderP,t4,elems), fontsize=bfsize)
 	plt.tight_layout()
 	plt.savefig("%s%s" % ("./plot/GoldP.",filetype))
-	plt.show()
+	#plt.show()
 
 	# Plot calculated
 	f2 = plt.figure(2,figsize=(size,size))
@@ -112,7 +112,7 @@ def main(argv):
 	plt.title("%s %s%s%s%s%s" % (t1,formulation,t3,orderP,t4,elems), fontsize=bfsize)
 	plt.tight_layout()
 	plt.savefig("%s%s" % ("./plot/CalcP.",filetype))
-	plt.show()
+	#plt.show()
 
 	if formulation != "Standard":
 		U = output["uxgrid"]
@@ -132,7 +132,7 @@ def main(argv):
 		plt.title("%s %s%s%s%s%s" % (t1,formulation,t3,orderP,t4,elems), fontsize=bfsize)
 		plt.tight_layout()
 		plt.savefig("%s%s" % ("./plot/CalcUx.",filetype))
-		plt.show()
+		#plt.show()
 
 		f4 = plt.figure(4,figsize=(size,size))
 		ax = f4.add_subplot(111, projection='3d')
@@ -148,7 +148,7 @@ def main(argv):
 		plt.title("%s %s%s%s%s%s" % (t1,formulation,t3,orderP,t4,elems), fontsize=bfsize)
 		plt.tight_layout()
 		plt.savefig("%s%s" % ("./plot/CalcVx.",filetype))
-		plt.show()
+		#plt.show()
 
 		Xc = (np.array(X))[::stride, ::stride]
 		Yc = (np.array(Y))[::stride, ::stride]
@@ -164,9 +164,10 @@ def main(argv):
 		t3 = ('\n Poly. degree: ')
 		t4 = (r', Elements: ')
 		plt.title("%s %s%s%s%s%s" % (t1,formulation,t3,orderP,t4,elems), fontsize=bfsize)
+		plt.grid(True)
 		plt.tight_layout()
 		plt.savefig("%s%s" % ("./plot/CalcUV.",filetype))
-		plt.show()
+		#plt.show()
 
 
 

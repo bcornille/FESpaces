@@ -61,6 +61,7 @@ def main(argv):
 			print ("%s%s%s%s" % ('c= ',curve,' f= ',formulation))
 			for p in range(p1,p2):
 				params["Formulation"] = formulation
+				params["Mesh"]["map_order"] = p
 				if formulation == "Mixed":
 					params["Mesh"]["el_order"] = p+1
 				else:
@@ -88,6 +89,7 @@ def main(argv):
 					params["Mesh"]["N_x"] = nelems[h-h1]
 					params["Mesh"]["N_y"] = nelems[h-h1]
 					params["Formulation"] = formulation
+					params["Mesh"]["map_order"] = p
 					if formulation == "Mixed":
 						params["Mesh"]["el_order"] = p+1
 					else:
