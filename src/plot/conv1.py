@@ -80,8 +80,8 @@ def main(argv):
 			for p in range(p1h,p2h):
 				for h in range(h1,h2):
 					nelems[h-h1] = int(math.pow(2,h))
-					params["Mesh"]["N"] = nelems[h-h1]
 					params["Mesh"]["map_order"] = p
+					params["Mesh"]["N"] = nelems[h-h1] - 1
 					params["Formulation"] = formulation
 					if formulation == "Mixed":
 						params["Order"] = p+1
@@ -131,8 +131,9 @@ def main(argv):
 	for c, curve in enumerate([0.0, c2]):
 		plt.figure((c+3), figsize=(size,size))
 		for f, formulation in enumerate(['standard', 'mixed', 'dual']):
-			handles.append(plt.Line2D([], [], color='k', linestyle='',
-				marker=markers[f], label=r'{}'.format(formulation)))
+			if c == 0:
+				handles.append(plt.Line2D([], [], color='k', linestyle='',
+					marker=markers[f], label=r'{}'.format(formulation)))
 			for p in range(p1h, p2h):
 				plt.loglog(nelems, errorh[c][f][p-p1h][0:(h2-h1)], marker=markers[f], 
 					color=colors[p-p1h], basex=2)
