@@ -340,6 +340,7 @@ class Integrator2D
 	public:
 		Integrator2D(json params);
 		~Integrator2D() = default;
+		MatrixXd mass(H1_2D u, H1_2D v, Transform2D t);
 		MatrixXd laplace(H1_2D u, H1_2D v, Transform2D t);
 		MatrixXd mass(HDiv_2D u, HDiv_2D v, Transform2D t);
 		MatrixXd grad(L2_2D u, HDiv_2D v, Transform2D t);
@@ -358,6 +359,26 @@ class Integrator2D
 };
 
 Integrator2D::Integrator2D(json params) : gl((int)params["N"]) {}
+
+inline MatrixXd Integrator2D::mass(H1_2D u, H1_2D v, Transform2D t)
+{
+	MatrixXd matrix(v.dofs(), u.dofs());
+	matrix.setZero();
+	for (int j = 0; j < gl.getN(); ++j)
+	{
+		Vector2d x_hat;
+		x_hat[1] = gl.getNode(j);
+		double w_j = gl.getWeight(j);
+		for (int i = 0; i < gl.getN(); ++i)
+		{
+			x_hat[0] = gl.getNode(i);
+			VectorXd u_vals = u.eval(x_hat);
+			VectorXd v_vals = v.eval(x_hat);
+			matrix += v_vals*u_vals.transpose()*t.jacobian(x_hat)*gl.getWeight(i)*w_j;
+		}
+	}
+	return matrix;
+}
 
 inline MatrixXd Integrator2D::laplace(H1_2D u, H1_2D v, Transform2D t)
 {
