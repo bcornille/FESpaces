@@ -341,6 +341,9 @@ class Integrator2D
 		Integrator2D(json params);
 		~Integrator2D() = default;
 		MatrixXd mass(H1_2D u, H1_2D v, Transform2D t);
+		MatrixXd mass(L2_2D u, L2_2D v, Transform2D t);
+		MatrixXd curl(HCurl_2D u, L2_2D v, Transform2D t);
+		MatrixXd curl(H1_2D u, HDiv_2D v, Transform2D t);
 		MatrixXd laplace(H1_2D u, H1_2D v, Transform2D t);
 		MatrixXd mass(HDiv_2D u, HDiv_2D v, Transform2D t);
 		MatrixXd grad(L2_2D u, HDiv_2D v, Transform2D t);
@@ -375,6 +378,67 @@ inline MatrixXd Integrator2D::mass(H1_2D u, H1_2D v, Transform2D t)
 			VectorXd u_vals = u.eval(x_hat);
 			VectorXd v_vals = v.eval(x_hat);
 			matrix += v_vals*u_vals.transpose()*t.jacobian(x_hat)*gl.getWeight(i)*w_j;
+		}
+	}
+	return matrix;
+}
+
+inline MatrixXd Integrator2D::mass(L2_2D u, L2_2D v, Transform2D t)
+{
+	MatrixXd matrix(v.dofs(), u.dofs());
+	matrix.setZero();
+	for (int j = 0; j < gl.getN(); ++j)
+	{
+		Vector2d x_hat;
+		x_hat[1] = gl.getNode(j);
+		double w_j = gl.getWeight(j);
+		for (int i = 0; i < gl.getN(); ++i)
+		{
+			x_hat[0] = gl.getNode(i);
+			VectorXd u_vals = u.eval(x_hat);
+			VectorXd v_vals = v.eval(x_hat);
+			matrix += v_vals*u_vals.transpose()*t.jacobian(x_hat)*gl.getWeight(i)*w_j;
+		}
+	}
+	return matrix;
+}
+
+inline MatrixXd Integrator2D::curl(HCurl_2D u, L2_2D v, Transform2D t)
+{
+	MatrixXd matrix(v.dofs(), u.dofs());
+	matrix.setZero();
+	for (int j = 0; j < gl.getN(); ++j)
+	{
+		Vector2d x_hat;
+		x_hat[1] = gl.getNode(j);
+		double w_j = gl.getWeight(j);
+		for (int i = 0; i < gl.getN(); ++i)
+		{
+			x_hat[0] = gl.getNode(i);
+			VectorXd u_vals = u.evalCurl(x_hat);
+			VectorXd v_vals = v.eval(x_hat);
+			matrix += v_vals*u_vals.transpose()*t.jacobian(x_hat)*gl.getWeight(i)*w_j;
+		}
+	}
+	return matrix;
+}
+
+inline MatrixXd Integrator2D::curl(H1_2D u, HDiv_2D v, Transform2D t)
+{
+	MatrixXd matrix(v.dofs(), u.dofs());
+	matrix.setZero();
+	for (int j = 0; j < gl.getN(); ++j)
+	{
+		Vector2d x_hat;
+		x_hat[1] = gl.getNode(j);
+		double w_j = gl.getWeight(j);
+		for (int i = 0; i < gl.getN(); ++i)
+		{
+			x_hat[0] = gl.getNode(i);
+			Matrix2d j_t = t.jacobianMatrix(x_hat).transpose();
+			MatrixX2d u_vals = u.evalCurl(x_hat)*j_t;
+			MatrixX2d v_vals = v.eval(x_hat)*j_t;
+			matrix += v_vals*u_vals.transpose()/t.jacobian(x_hat)*gl.getWeight(i)*w_j;
 		}
 	}
 	return matrix;

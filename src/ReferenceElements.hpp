@@ -135,6 +135,7 @@ class H1_2D
 		~H1_2D() = default;
 		VectorXd eval(Vector2d x);
 		MatrixX2d evalGrad(Vector2d x);
+		MatrixX2d evalCurl(Vector2d x);
 		int dofs();
 	private:
 		int n_dof;
@@ -164,6 +165,18 @@ inline MatrixX2d H1_2D::evalGrad(Vector2d x)
 	return grad;
 }
 
+inline MatrixX2d H1_2D::evalCurl(Vector2d x)
+{
+	MatrixX2d curl(n_dof, 2);
+	MatrixX2d gll_x = gll.evalGLL(x[0]);
+	MatrixX2d gll_y = gll.evalGLL(x[1]);
+	MatrixXd mat_vals = gll_x.rightCols<1>()*gll_y.leftCols<1>().transpose();
+	curl.rightCols<1>() = -Map<VectorXd>(mat_vals.data(), n_dof);
+	mat_vals = gll_x.leftCols<1>()*gll_y.rightCols<1>().transpose();
+	curl.leftCols<1>() = Map<VectorXd>(mat_vals.data(), n_dof);
+	return curl;
+}
+
 inline int H1_2D::dofs()
 {
 	return n_dof;
@@ -175,6 +188,7 @@ class HCurl_2D
 		HCurl_2D(int p = 1);
 		~HCurl_2D() = default;
 		MatrixX2d eval(Vector2d x);
+		VectorXd evalCurl(Vector2d x);
 		int dofs();
 	private:
 		int dof_per_dim;
@@ -196,6 +210,18 @@ inline MatrixX2d HCurl_2D::eval(Vector2d x)
 		*gl.evalGL(x[1]).leftCols<1>().transpose());
 	vals.bottomRightCorner(dof_per_dim,1) = Map<VectorXd>(mat_yvals.data(), dof_per_dim);
 	return vals;
+}
+
+inline VectorXd HCurl_2D::evalCurl(Vector2d x)
+{
+	VectorXd curl(n_dof);
+	MatrixXd mat_xvals = (gl.evalGL(x[0]).leftCols<1>()
+		*gll.evalGLL(x[1]).rightCols<1>().transpose());
+	curl.head(dof_per_dim) = -Map<VectorXd>(mat_xvals.data(), dof_per_dim);
+	MatrixXd mat_yvals = (gll.evalGLL(x[0]).rightCols<1>()
+		*gl.evalGL(x[1]).leftCols<1>().transpose());
+	curl.tail(dof_per_dim) = Map<VectorXd>(mat_yvals.data(), dof_per_dim);
+	return curl;
 }
 
 inline int HCurl_2D::dofs()
